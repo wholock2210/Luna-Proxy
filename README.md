@@ -81,7 +81,7 @@ Example response:
   "object": "list",
   "data": [
     {
-      "id": "Qwen3.6-Plus",
+      "id": "qwen3.6-plus",
       "object": "model",
       "created": 0,
       "owned_by": "qwen-ai",
@@ -200,7 +200,7 @@ x-proxy-key: <proxy-key>
 curl -sS -X POST http://127.0.0.1:8080/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
-    "model": "Qwen3.6-Plus",
+    "model": "qwen3.6-plus",
     "stream": false,
     "messages": [
       {"role": "user", "content": "Hello!"}
@@ -214,7 +214,7 @@ curl -sS -X POST http://127.0.0.1:8080/v1/chat/completions \
 curl -N -sS -X POST http://127.0.0.1:8080/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
-    "model": "Qwen3.6-Plus",
+    "model": "qwen3.6-plus",
     "stream": true,
     "messages": [
       {"role": "user", "content": "Write a short introduction"}
