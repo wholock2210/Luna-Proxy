@@ -343,3 +343,12 @@ Use the Logs and Runs pages in the UI, or inspect:
 GET /api/logs
 GET /api/runs
 ```
+
+## Important Notice
+
+**WARNING: This project is provided only for research, learning, and local
+technical evaluation. It is not intended for commercial use, production abuse,
+unauthorized access, policy bypassing, spam, credential misuse, service abuse,
+or any other harmful activity. Any misuse of this project is strictly
+prohibited. Users are responsible for complying with applicable laws, platform
+terms, and provider policies.**
