@@ -10,9 +10,6 @@ const {
   stripThinkingBlocks,
   messageSimilarity,
 } = require('../src/main/proxy/overflowSanitizer');
-const {
-  getXmlPassthroughContract,
-} = require('../src/main/proxy/clineXmlContract');
 
 const BASE_CFG = {
   enabled: true,
@@ -35,9 +32,6 @@ const BASE_CFG = {
   maxAssistantMessages: 10,
   prioritizeUserMessages: true,
   includeProjectSnapshot: true,
-  clientAwareResponseContract: true,
-  clineUseAttemptCompletion: true,
-  clientRules: {},
 };
 
 function run(input: {role: string; content: any}[], projectSnapshot?: string) {
@@ -151,44 +145,6 @@ describe('Section 14.1.9 — Multiple messages priority', () => {
     ]);
     assertTrue(result.activeTask.includes('new instruction'),
       'user_message should be active task');
-  });
-});
-
-describe('Client contracts', () => {
-  it('detects LunaCoding and preserves <call name="..."> XML contract', () => {
-    const lunaSystem = 'You are an AI harness assistant named "Luna" embedded in the LunaCoding terminal UI. Root tag: <call name="TOOL_NAME">.';
-    const result = run([
-      { role: 'system', content: lunaSystem },
-      { role: 'user', content: 'đọc package.json' },
-    ]);
-
-    assertEqual(result.client, 'lunaCoding', 'client should be LunaCoding');
-    assertEqual(result.clientResponseContract, 'client_protocol_call_xml', 'contract should match detected call XML');
-    assertMatch(result.fileContent, /<call name="tool_name">/, 'overflow file should guide LunaCoding call XML');
-    assertNotMatch(result.fileContent, /Cline completion tool/, 'overflow file should not hard-code Cline retry guidance');
-  });
-
-  it('injects detected XML passthrough instead of forcing bare Cline-style tags', () => {
-    const contract = getXmlPassthroughContract([
-      { role: 'system', content: 'LunaCoding terminal UI. Tool invocation format: <call name="read_file"><path>package.json</path></call>' },
-    ]);
-
-    assertMatch(contract, /<call name="tool_name">/, 'contract should include call XML guidance');
-    assertNotMatch(contract, /<read_file><path>path<\/path><\/read_file>/, 'contract should not force bare read_file XML');
-  });
-
-  it('supports tool_use XML and bracket-call clients without naming the client', () => {
-    const toolUse = run([
-      { role: 'system', content: 'Tool format: <tool_use><name>read_file</name><arguments>{"path":"package.json"}</arguments></tool_use>' },
-      { role: 'user', content: 'read package.json' },
-    ]);
-    assertEqual(toolUse.clientResponseContract, 'client_protocol_tool_use_xml', 'tool_use XML should be detected');
-    assertMatch(toolUse.fileContent, /<tool_use><name>/, 'tool_use guidance should be preserved');
-
-    const bracket = getXmlPassthroughContract([
-      { role: 'system', content: 'Use [call:default_api:read_file]{"filePath":"package.json"}[/call] for tools.' },
-    ]);
-    assertMatch(bracket, /\[call:tool_name\]/, 'bracket call guidance should be preserved');
   });
 });
 

@@ -100,16 +100,6 @@ export class ConfigStore {
           maxToolResultCount: 5,
           prioritizeUserMessages: true,
           includeProjectSnapshot: true,
-          clientAwareResponseContract: true,
-          clineUseAttemptCompletion: true,
-          clientRules: {
-            cline: true,
-            roo: true,
-            lunaCoding: true,
-            cursor: true,
-            'continue': true,
-            unknown: true,
-          },
         },
       },
       session: {

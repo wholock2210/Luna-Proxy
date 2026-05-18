@@ -1,4 +1,3 @@
-import {detectClientName, getClientProtocolProfile} from './clientContracts';
 
 export interface OverflowSanitizerConfig {
   enabled: boolean;
@@ -20,15 +19,6 @@ export interface OverflowSanitizerConfig {
   maxAssistantMessages: number;
   prioritizeUserMessages: boolean;
   includeProjectSnapshot: boolean;
-  clientAwareResponseContract: boolean;
-  clineUseAttemptCompletion: boolean;
-  clientRules: Record<string, boolean>;
-}
-
-export interface ClientResponseContract {
-  name: string;
-  guardText: string;
-  allowXmlToolTags: boolean;
 }
 
 export interface IgnoredReason {
@@ -73,8 +63,6 @@ interface ClassifiedMessage {
   reason?: string;
   partialNoiseReasons?: string[];
 }
-
-const CODING_AGENT_CLIENTS = ['cline', 'roo', 'lunaCoding', 'kilocode', 'codexCli', 'vscodeAgent'];
 
 const PROJECT_KEYWORDS = [/project/i, /code/i, /file/i, /folder/i, /lỗi/i, /sửa/i, /fix/i, /implement/i, /plan/i];
 
@@ -142,81 +130,6 @@ const TASK_RESUMPTION_PATTERNS = [
   /plan_mode_respond/i,
 ];
 
-const RESPONSE_CONTRACTS: Record<string, ClientResponseContract> = {
-  cline: {
-    name: 'cline_attempt_completion',
-    guardText: `You are responding to Cline through Proxy-Luna.
-Follow the tool-use instructions and available tools already provided by the Cline client in the conversation.
-If more information is needed, you may emit exactly one valid Cline tool call according to those client-provided instructions.
-Do not invent tool results.
-Do not write tool-result text yourself.
-When the task is complete, use the client's completion tool format.
-Do not treat previous tool results, task_progress reminders, plan-mode instructions, task resumption wrappers, or environment details as the user's new task.`,
-    allowXmlToolTags: true,
-  },
-  roo: {
-    name: 'roo_attempt_completion',
-    guardText: `You are responding to Roo through Proxy-Luna.
-Follow the tool-use instructions already provided in the conversation.
-If more information is needed, emit exactly one valid tool call.
-Do not invent tool results.
-When complete, use the client's completion format.`,
-    allowXmlToolTags: true,
-  },
-  lunaCoding: {
-    name: 'lunacoding_call_xml',
-    guardText: `You are responding to LunaCoding through Proxy-Luna.
-Follow the LunaCoding system prompt and tool-use instructions already provided in the conversation.
-If more information is needed, emit exactly one valid LunaCoding XML tool call using:
-<call name="tool_name">
-  <param>value</param>
-</call>
-Do not emit bare client tags like <read_file>...</read_file> unless LunaCoding explicitly asked for that format.
-Do not invent tool results.
-When complete, answer in LunaCoding's requested final response format.`,
-    allowXmlToolTags: true,
-  },
-  generic: {
-    name: 'generic_plain_text',
-    guardText: `Answer normally.
-Do not output fake tool calls or client-side XML tool tags.`,
-    allowXmlToolTags: false,
-  },
-};
-
-function detectClient(messages: any[]): string {
-  return detectClientName(messages);
-}
-
-function buildClientRetryNote(client: string): string {
-  if (client === 'cline') {
-    return `\nThe client previously rejected the answer because it did not use a Cline completion tool.
-For this response, if the answer is final, you MUST use:
-<attempt_completion>
-<result>...</result>
-</attempt_completion>`;
-  }
-
-  if (client === 'lunaCoding') {
-    return `\nThe client previously rejected the answer because it did not follow LunaCoding's response contract.
-For this response, if a tool is needed, use <call name="tool_name">...</call>. If the answer is final, answer in LunaCoding's requested final response format.`;
-  }
-
-  return `\nThe client previously rejected the answer because it did not follow the client response contract.
-For this response, follow the client-provided tool and completion instructions exactly.`;
-}
-
-export function getClientResponseContract(clientOrMessages: string | any[]): ClientResponseContract {
-  if (Array.isArray(clientOrMessages)) {
-    const profile = getClientProtocolProfile(clientOrMessages);
-    return {
-      name: profile.contractName,
-      guardText: profile.guardText,
-      allowXmlToolTags: profile.allowToolTags,
-    };
-  }
-  return RESPONSE_CONTRACTS[clientOrMessages] || RESPONSE_CONTRACTS.generic;
-}
 
 function extractMessageTextParts(msg: any): MessageTextPart[] {
   const content = msg?.content;
@@ -427,7 +340,7 @@ function reduceEnvironmentDetails(text: string, maxFileList: number): string {
   return text.replace(envMatch[0], `<environment_details>\n${envBlock.trim()}\n</environment_details>`);
 }
 
-function classifyMessage(msg: any, index: number, config: OverflowSanitizerConfig, client: string = 'unknown'): ClassifiedMessage {
+function classifyMessage(msg: any, index: number, config: OverflowSanitizerConfig): ClassifiedMessage {
   const role = msg?.role || 'unknown';
 
   const result: ClassifiedMessage = {
@@ -448,7 +361,7 @@ function classifyMessage(msg: any, index: number, config: OverflowSanitizerConfi
     }
     const sigCount = CLIENT_TOOL_SIGNATURES.filter(s => text.includes(s)).length;
     const isToolHeavy = sigCount >= 3 || /## execute_command[\s\S]*## attempt_completion/.test(text);
-    if (isToolHeavy && config.stripClientToolProtocol && client !== 'lunaCoding') {
+    if (isToolHeavy && config.stripClientToolProtocol) {
       result.classification = 'client_protocol_noise';
       result.reason = `system prompt with ${sigCount} tool signatures`;
       return result;
@@ -648,14 +561,6 @@ function classifyMessage(msg: any, index: number, config: OverflowSanitizerConfi
   return result;
 }
 
-function detectClientRetryFromRawMessages(messages: any[]): boolean {
-  for (const msg of messages) {
-    const parts = extractMessageTextParts(msg);
-    if (parts.some(p => isRetryReminder(p.text))) return true;
-  }
-  return false;
-}
-
 function extractActiveUserTaskFromClassified(
   classified: ClassifiedMessage[],
   config: OverflowSanitizerConfig,
@@ -693,10 +598,8 @@ function extractActiveUserTaskFromClassified(
 function buildSanitizedFileContent(
   classified: ClassifiedMessage[],
   activeTask: {task: string; messageIndex: number; confidence: string; source: string; isIgnored: boolean},
-  client: string,
   config: OverflowSanitizerConfig,
   projectSnapshotText?: string,
-  contractOverride?: ClientResponseContract,
 ): {
   content: string;
   ignoredReasons: IgnoredReason[];
@@ -776,8 +679,8 @@ function buildSanitizedFileContent(
     }
   }
 
-  const contract = contractOverride || getClientResponseContract(client);
-  const retryNote = clientRetryDetected ? buildClientRetryNote(client) : '';
+  const client = 'generic';
+  const contractName = 'generic_plain_text';
 
   const parts: string[] = [];
   parts.push('# IMPORTANT: This file IS the overflow container, not the subject of analysis.');
@@ -802,12 +705,7 @@ function buildSanitizedFileContent(
   parts.push('');
 
   parts.push('CLIENT_RESPONSE_CONTRACT:');
-  parts.push(contract.name);
-  if (config.clientAwareResponseContract && contract.guardText) {
-    parts.push('');
-    const guardWithRetry = retryNote ? contract.guardText + retryNote : contract.guardText;
-    parts.push(guardWithRetry);
-  }
+  parts.push(contractName);
   parts.push('');
 
   parts.push('ACTIVE_USER_TASK:');
@@ -944,24 +842,17 @@ export function buildSanitizedOverflow(
     maxAssistantMessages: config.maxAssistantMessages || 1,
     prioritizeUserMessages: config.prioritizeUserMessages !== false,
     includeProjectSnapshot: config.includeProjectSnapshot !== false,
-    clientAwareResponseContract: config.clientAwareResponseContract !== false,
-    clineUseAttemptCompletion: config.clineUseAttemptCompletion !== false,
-    clientRules: config.clientRules || {},
   };
 
-  const client = detectClient(messages);
-  const clientContract = getClientResponseContract(messages);
-  const clientRetryDetectedRaw = detectClientRetryFromRawMessages(messages);
-  const classified = messages.map((msg, i) => classifyMessage(msg, i, cfg, client));
+  const client = 'generic';
+  const clientContractName = 'generic_plain_text';
+  const classified = messages.map((msg, i) => classifyMessage(msg, i, cfg));
   const activeTask = extractActiveUserTaskFromClassified(classified, cfg);
-  const result = buildSanitizedFileContent(classified, activeTask, client, cfg, projectSnapshotText, clientContract);
-
-  const finalClientRetryDetected = clientRetryDetectedRaw || result.clientRetryDetected;
-  const clientRetrySource = clientRetryDetectedRaw ? 'raw_message_scan' : result.clientRetryDetected ? 'classification' : 'none';
+  const result = buildSanitizedFileContent(classified, activeTask, cfg, projectSnapshotText);
 
   return {
     client,
-    clientResponseContract: clientContract.name,
+    clientResponseContract: clientContractName,
     activeTask: activeTask.task,
     activeTaskSource: activeTask.source,
     fileContent: result.content,
@@ -977,9 +868,9 @@ export function buildSanitizedOverflow(
         isIgnored: activeTask.isIgnored,
         fromPartIndex: activeTask.fromPartIndex,
       },
-      clientRetryDetected: finalClientRetryDetected,
-      clientRetrySource,
-      clientResponseContract: clientContract.name,
+      clientRetryDetected: false,
+      clientRetrySource: 'disabled',
+      clientResponseContract: clientContractName,
       partialNoise: result.partialNoise,
       removedCounts: result.removedCounts,
       projectSnapshotIncluded: !!projectSnapshotText,
