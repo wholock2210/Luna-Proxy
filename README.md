@@ -25,7 +25,7 @@ Designed for local development and controlled routing. No cloud dependency, no t
 - **Built-in Admin UI** — React dashboard served alongside the API on the same port
 - **Credential management** — automatic OAuth capture via Puppeteer or manual token/cookie input
 - **Multi-account routing** — queue and concurrency controls across providers, accounts, and workers
-- **Session & run tracking** — persistent sessions, run history, and thread binding
+- **Session & run tracking** — persistent sessions, run history, thread binding, and admin cleanup controls
 - **Prompt overflow handling** — automatically offloads large prompts to file-backed context
 - **Runtime prompt overrides** — inspect and update protocol prompts from the admin API
 - **Worker routing** — optional egress/IP verification and worker forwarding
@@ -86,7 +86,7 @@ data/config.json
 
 ## Supported Models
 
-LunaProxy exposes all models configured in the admin UI through the `/v1/models` endpoint in OpenAI-compatible format.
+LunaProxy exposes the built-in Qwen model catalog through the `/v1/models` endpoint in OpenAI-compatible format. The model list is maintained in `src/main/providers/builtin/qwen-ai.ts` and is the single source used by `/api/models`, `/api/models/refresh`, and `/v1/models`.
 
 ```bash
 curl -sS http://127.0.0.1:8080/v1/models
@@ -109,7 +109,7 @@ Example response:
 }
 ```
 
-The model list is managed from the **Models** page in the admin UI and can be refreshed via `POST /api/models/refresh`.
+The **Models** page can refresh/sync the runtime config from this built-in catalog via `POST /api/models/refresh`; it does not fetch a separate model list from Qwen at runtime.
 
 ---
 
@@ -386,7 +386,22 @@ data/runs.json       # run history
 
 Session behavior is configured under `settings.session`. Concurrency and queueing behavior is under `settings.multiThread`.
 
-The admin UI includes dedicated pages for browsing sessions, runs, logs, providers, models, and workers.
+The admin UI includes dedicated pages for browsing sessions, runs, logs, providers, models, and workers. Logs, Runs, and Sessions render lazily in batches while you scroll, so long histories do not block the UI. Session and run detail views open in an overlay panel, similar to the Logs detail view, so selecting an item does not require scrolling past a long table.
+
+Cleanup controls:
+
+- Logs can be cleared from the Logs page or with `DELETE /api/logs`.
+- Runs can be deleted individually or all at once from the Runs page.
+- Sessions can be deleted individually or all at once from the Sessions page.
+
+Overflow and compact artifacts are preserved locally for debugging:
+
+```
+data/overflow/   # full prompt overflow files
+data/compact/    # compact-session source files
+```
+
+If Qwen file upload or parse-status polling fails during overflow, LunaProxy falls back to the original request messages instead of sending a fake attachment prompt. If compact upload fails, the local compact file is kept and compaction is skipped.
 
 ---
 
@@ -430,7 +445,19 @@ The admin UI includes dedicated pages for browsing sessions, runs, logs, provide
 | `GET` | `/api/logs` | Fetch logs |
 | `DELETE` | `/api/logs` | Clear logs |
 | `GET` | `/api/sessions` | List sessions |
+| `GET` | `/api/sessions/:id` | Get session detail |
+| `DELETE` | `/api/sessions/:id` | Delete one session |
+| `DELETE` | `/api/sessions` | Delete all sessions |
+| `POST` | `/api/sessions/:id/clear` | Clear one session's history |
+| `POST` | `/api/sessions/:id/compact` | Compact one session |
+| `POST` | `/api/sessions/:id/rename` | Rename one session |
+| `POST` | `/api/sessions/:id/reset-provider` | Reset provider chat binding |
+| `POST` | `/api/sessions/reload` | Reload sessions from disk |
 | `GET` | `/api/runs` | List runs |
+| `GET` | `/api/runs/:id` | Get run detail |
+| `POST` | `/api/runs/:id/cancel` | Cancel an active run |
+| `DELETE` | `/api/runs/:id` | Delete one run |
+| `DELETE` | `/api/runs` | Delete all runs |
 | `GET` | `/api/runtime` | Runtime state |
 | `GET` | `/api/provider-runtime` | Provider runtime state |
 | `GET` | `/api/network-profiles` | Network profiles |

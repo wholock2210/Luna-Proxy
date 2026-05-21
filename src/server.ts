@@ -27,7 +27,7 @@ import {getNetworkProfiles, upsertNetworkProfile, deleteNetworkProfile, verifyDi
 import type {RunContext, ProviderBinding, ProviderAccount, ProviderWorker, NetworkProfile} from './runtime/types';
 import axios from 'axios';
 import * as querystring from 'querystring';
-import {qwenAiConfig} from './main/providers/builtin/qwen-ai';
+import {qwenAiConfig, getQwenAiModelCatalog, getQwenAiModelMappings} from './main/providers/builtin/qwen-ai';
 import {isAssistantFailureEcho, stripThinkingBlocks, messageSimilarity} from './main/proxy/overflowSanitizer';
 import {getWorkers, upsertWorker, deleteWorker, verifyWorkerIp} from './modules/workers';
 import {analyzeResponseXml} from './modules/responseAnalyzer';
@@ -495,11 +495,11 @@ export class SimpleProxyServer {
     });
 
     this.router.get('/api/models', async ctx => {
-      const config = configStore.getConfig();
       ctx.body = {
         providerId: 'qwen-ai',
-        items: configStore.getModels(),
-        updatedAt: config.modelsUpdatedAt || null,
+        source: 'builtin-qwen-catalog',
+        items: getQwenAiModelCatalog(),
+        updatedAt: null,
       };
     });
 
@@ -520,10 +520,7 @@ export class SimpleProxyServer {
         }
       }
 
-      const created = config.modelsUpdatedAt
-        ? Math.floor(config.modelsUpdatedAt / 1000)
-        : 0;
-      const data = configStore.getModels()
+      const data = getQwenAiModelCatalog()
         .map(model => {
           const id = String(model.id || model.name || '').trim();
           if (!id) {
@@ -532,7 +529,7 @@ export class SimpleProxyServer {
           return {
             id,
             object: 'model',
-            created,
+            created: 0,
             owned_by: 'qwen-ai',
             name: model.name || id,
           };
@@ -553,106 +550,23 @@ export class SimpleProxyServer {
     });
 
     this.router.post('/api/models', async ctx => {
-      const {id, name} = ctx.request.body as any;
-      if (!id || !name) {
-        ctx.status = 400;
-        ctx.body = { error: 'id and name required' };
-        return;
-      }
-      const models = configStore.addModel({ id, name });
-      ctx.body = models;
+      ctx.status = 405;
+      ctx.body = {
+        ok: false,
+        error: 'Models are managed from the built-in Qwen catalog only',
+      };
     });
 
     this.router.post('/api/models/refresh', async ctx => {
       try {
-        const conf = configStore.getConfig();
-        const providerConf = conf.providers.find(p => p.id === 'qwen-ai');
-        const credentials = providerConf?.credentials || {};
-        const token = credentials.token || '';
-        const cookies = credentials.cookies || credentials.cookie || '';
-
-        if (!token && !cookies) {
-          ctx.status = 400;
-          ctx.body = {ok: false, error: 'Qwen AI token/cookies not configured'};
-          return;
-        }
-
-        const requestHeaders: Record<string, string> = {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          ...(qwenAiConfig.modelsApiHeaders || {}),
-        };
-
-        if (token) {
-          requestHeaders.Authorization = `Bearer ${token}`;
-        }
-        if (cookies) {
-          requestHeaders.Cookie = cookies;
-        }
-
-        const response = await axios.get(qwenAiConfig.modelsApiEndpoint || '', {
-          headers: requestHeaders,
-          timeout: 15000,
-          validateStatus: () => true,
-        });
-
-        if (response.status !== 200) {
-          ctx.status = 502;
-          ctx.body = {
-            ok: false,
-            error: `Failed to fetch models: HTTP ${response.status}`,
-          };
-          return;
-        }
-
-        const rawData = response.data?.data ?? response.data;
-        const rawModels = Array.isArray(rawData)
-          ? rawData
-          : Array.isArray(rawData?.models)
-            ? rawData.models
-            : [];
-
-        if (!Array.isArray(rawModels) || rawModels.length === 0) {
-          ctx.status = 502;
-          ctx.body = {ok: false, error: 'No models found in provider response'};
-          return;
-        }
-
-        const items: Array<{id: string; name: string}> = [];
-        for (const model of rawModels) {
-          if (typeof model === 'string') {
-            items.push({id: model, name: model});
-            continue;
-          }
-          if (model && typeof model === 'object') {
-            const modelId = String(model.id || model.model_id || model.name || '').trim();
-            const modelName = String(model.name || model.display_name || modelId).trim();
-            if (modelId) {
-              items.push({id: modelId, name: modelName || modelId});
-            }
-          }
-        }
-
-        const dedupMap = new Map<string, {id: string; name: string}>();
-        for (const item of items) {
-          if (!dedupMap.has(item.id)) {
-            dedupMap.set(item.id, item);
-          }
-        }
-        const uniqueItems = Array.from(dedupMap.values());
-
-        if (uniqueItems.length === 0) {
-          ctx.status = 502;
-          ctx.body = {ok: false, error: 'Failed to parse models from provider response'};
-          return;
-        }
-
-        configStore.setModels(uniqueItems);
+        const items = getQwenAiModelCatalog();
+        configStore.setModels(items);
         ctx.body = {
           ok: true,
           providerId: 'qwen-ai',
-          count: uniqueItems.length,
-          items: uniqueItems,
+          source: 'builtin-qwen-catalog',
+          count: items.length,
+          items,
           updatedAt: Date.now(),
         };
       } catch (error) {
@@ -1169,7 +1083,7 @@ export class SimpleProxyServer {
         id: 'qwen-ai',
         apiEndpoint: 'https://chat.qwen.ai',
         chatPath: '/api/v2/chat/completions',
-        ...(qwenAiConfig.modelMappings ? {modelMappings: qwenAiConfig.modelMappings as any} : {}),
+        modelMappings: getQwenAiModelMappings() as any,
       } as Provider;
       const account: Account = {
         id: 'debug-file-flow',
@@ -1944,7 +1858,7 @@ export class SimpleProxyServer {
               id: 'qwen-ai',
               apiEndpoint: 'https://chat.qwen.ai',
               chatPath: '/api/v2/chat/completions',
-              ...(qwenAiConfig.modelMappings ? {modelMappings: qwenAiConfig.modelMappings as any} : {}),
+              modelMappings: getQwenAiModelMappings() as any,
             } as Provider;
             adapter = new QwenAiAdapter(provider, account);
             directAdapter = adapter;
@@ -2230,7 +2144,7 @@ export class SimpleProxyServer {
             id: 'qwen-ai',
             apiEndpoint: 'https://chat.qwen.ai',
             chatPath: '/api/v2/chat/completions',
-            ...(qwenAiConfig.modelMappings ? { modelMappings: qwenAiConfig.modelMappings as any } : {}),
+            modelMappings: getQwenAiModelMappings() as any,
           } as Provider;
           adapter = new QwenAiAdapter(provider, account);
         } else {

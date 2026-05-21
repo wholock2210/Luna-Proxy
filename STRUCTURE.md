@@ -45,13 +45,17 @@ src/
 
 ```text
 src/modules/
+├── chatCleanup.ts              # Qwen chat cleanup scheduler and manual cleanup status
+├── contextHash.ts              # Context-hash session resolution helpers
 ├── overflowPolicy.ts            # Overflow file generation, upload, file-backed session anchors
 ├── ossUploader.ts               # Qwen OSS/file upload helper
 ├── responseAnalyzer.ts          # Response XML/tool-output inspection helpers
+├── rollingSummary.ts            # Async rolling summary generation
 ├── sessionCompactor.ts          # Session summary/compaction flow
 ├── sessionPersistence.ts        # Persist user/assistant turns into sessions
 ├── sseCollector.ts              # Convert streamed OpenAI SSE into final objects
 ├── textUtils.ts                 # Text extraction and token estimates
+├── upstreamErrorHandler.ts      # Normalize upstream/provider error responses
 └── workers.ts                   # Worker registry and verification helpers
 ```
 
@@ -64,7 +68,7 @@ src/runtime/
 ├── providerFactory.ts           # Provider adapter construction
 ├── providerRouter.ts            # Provider/account selection
 ├── runControllers.ts            # Abort/cancel controller registry
-├── runStore.ts                  # Run persistence
+├── runStore.ts                  # Run persistence, delete-one, and clear-all operations
 ├── scheduler.ts                 # Queueing and concurrency policies
 ├── types.ts                     # Runtime type definitions
 ├── workerClient.ts              # Worker forwarding client
@@ -134,6 +138,8 @@ frontend/
 ```
 
 The backend serves `public/`, not `frontend/`. `frontend/` is source; `public/` is the built/static UI bundle used at runtime.
+
+Logs, Runs, and Sessions use bounded scroll containers and lazy row rendering in the frontend. Runs and Sessions open selected-item details in an overlay panel instead of appending detail content below long tables.
 
 ## Static UI
 

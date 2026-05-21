@@ -1,5 +1,28 @@
 # Session Redesign Plan — Proxy-Luna
 
+## Trạng Thái Triển Khai Hiện Tại
+
+Các phần dưới đây đã được triển khai trong codebase hiện tại:
+
+- ✅ Context hash session resolution qua `src/modules/contextHash.ts` và `sessionStore.contextHashIndex`
+- ✅ Rolling summary async qua `src/modules/rollingSummary.ts`
+- ✅ Context overflow signal trong request pipeline
+- ✅ Chat cleanup scheduler qua `src/modules/chatCleanup.ts`
+- ✅ Compact race guard trong `src/modules/sessionPersistence.ts`
+- ✅ Compact upload fallback: nếu upload/parse compact file thất bại thì giữ file local trong `data/compact/` và bỏ qua compact thay vì làm hỏng request nền
+- ✅ Overflow upload fallback: nếu không attach được overflow file lên Qwen thì không gửi prompt `ATTACHED FILE` giả; request quay lại messages gốc để tránh yêu cầu model đọc file không tồn tại
+- ✅ Qwen file parse wait tăng thời gian chờ mặc định trong `src/modules/ossUploader.ts`
+- ✅ Run management API: `DELETE /api/runs/:id` và `DELETE /api/runs`
+- ✅ Admin UI Sessions/Runs detail mở dạng overlay như Logs, không bị đẩy xuống dưới list dài
+- ✅ Admin UI lazy render cho Logs/Runs/Sessions: render batch 50 dòng và tăng dần khi scroll
+- ✅ Static UI đã build ra `public/assets/proxy-luna-app.js` và `public/styles.css`
+
+Ghi chú triển khai:
+
+- `frontend/` là source UI; runtime backend serve `public/`.
+- `data/sessions.json`, `data/runs.json`, `data/overflow/`, `data/compact/`, và `data/wire-logs/` vẫn là runtime artifacts.
+- Overflow file-backed anchor vẫn được giữ để debug/session trace khi overflow xảy ra; nếu upload fail thì anchor chỉ có local path.
+
 ## Mục Tiêu
 
 Tái thiết kế hoàn toàn hệ thống session để hoạt động tự động với bất kỳ client chuẩn nào
@@ -404,12 +427,51 @@ if (shouldCompact) {
 | `src/modules/contextHash.ts` | **NEW** | Hash engine: inbound + outbound hash |
 | `src/modules/rollingSummary.ts` | **NEW** | Async rolling summary generation |
 | `src/modules/chatCleanup.ts` | **NEW** | Scheduler xóa Qwen AI chats |
+| `src/modules/upstreamErrorHandler.ts` | **NEW** | Chuẩn hóa lỗi upstream/provider |
 | `src/sessionStore.ts` | MODIFY | contextHashIndex, turnCount, bỏ logic header cũ |
 | `src/server.ts` | MODIFY | Session resolution mới, summary inject, overflow signal, cleanup |
 | `src/modules/sessionPersistence.ts` | MODIFY | Compact guard, trigger rolling summary |
-| `src/modules/sessionCompactor.ts` | MODIFY | KHÔNG clear hash sau compact |
-| `src/modules/overflowPolicy.ts` | MODIFY | Bỏ file-backed session mode |
+| `src/modules/sessionCompactor.ts` | MODIFY | Không clear hash sau compact; upload fail thì giữ local compact file và skip |
+| `src/modules/overflowPolicy.ts` | MODIFY | Raw overflow prompt file, session overflow anchor, upload-fail fallback về messages gốc |
+| `src/modules/ossUploader.ts` | MODIFY | Upload OSS + parse/status wait; tăng thời gian chờ parse |
 | `src/configStore.ts` | MODIFY | Config schema mới |
+| `src/runtime/runStore.ts` | MODIFY | Thêm `deleteRun()` và `clearAll()` |
+| `frontend/src/pages/Logs.tsx` | MODIFY | List scroll riêng + lazy render batch 50 |
+| `frontend/src/pages/Runs.tsx` | MODIFY | Xóa run, xóa all runs, detail overlay, lazy render |
+| `frontend/src/pages/Sessions.tsx` | MODIFY | Xóa sessions, detail overlay, lazy render |
+| `frontend/src/styles.css` | MODIFY | `.list-scroll`, sticky table header, lazy status |
+| `public/assets/proxy-luna-app.js` | BUILD | Static UI bundle đang được backend serve |
+| `public/styles.css` | BUILD | Static CSS đang được backend serve |
+
+## Admin UI / API Đã Bổ Sung
+
+### Logs
+
+- `GET /api/logs?limit=1000`
+- `DELETE /api/logs`
+- UI render tối đa 50 dòng ban đầu, scroll để render thêm.
+
+### Runs
+
+- `GET /api/runs?limit=2000`
+- `GET /api/runs/:id`
+- `POST /api/runs/:id/cancel`
+- `DELETE /api/runs/:id`
+- `DELETE /api/runs`
+- UI có overlay detail, xóa từng run, xóa toàn bộ runs, lazy render theo scroll.
+
+### Sessions
+
+- `GET /api/sessions`
+- `GET /api/sessions/:id`
+- `DELETE /api/sessions/:id`
+- `DELETE /api/sessions`
+- `POST /api/sessions/:id/clear`
+- `POST /api/sessions/:id/compact`
+- `POST /api/sessions/:id/rename`
+- `POST /api/sessions/:id/reset-provider`
+- `POST /api/sessions/reload`
+- UI có overlay detail và lazy render theo scroll.
 
 ---
 

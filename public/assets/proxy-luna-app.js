@@ -27109,6 +27109,7 @@ function Models() {
   const [loading, setLoading] = (0, import_react4.useState)(false);
   const [refreshing, setRefreshing] = (0, import_react4.useState)(false);
   const [message, setMessage] = (0, import_react4.useState)(null);
+  const [selectedModel, setSelectedModel] = (0, import_react4.useState)(null);
   const loadModels = (0, import_react4.useCallback)(async () => {
     setLoading(true);
     setMessage(null);
@@ -27129,7 +27130,7 @@ function Models() {
   }, [loadModels]);
   async function refreshModels() {
     setRefreshing(true);
-    setMessage("Refreshing from chat.qwen.ai...");
+    setMessage("Refreshing from built-in Qwen catalog...");
     try {
       const res = await fetch("/api/models/refresh", {
         method: "POST",
@@ -27140,7 +27141,7 @@ function Models() {
         setMessage(data?.error || "Failed to refresh models");
         return;
       }
-      setMessage(`Loaded ${data.count} models from Qwen AI`);
+      setMessage(`Loaded ${data.count} models from built-in Qwen catalog`);
       await loadModels();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to refresh models");
@@ -27160,9 +27161,9 @@ function Models() {
       ] })
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "surface-card", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { className: "muted", children: "Provider: Qwen AI (International)" }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { className: "muted", children: "Provider: Qwen AI (International). Source: built-in catalog." }),
       /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "action-row", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { onClick: refreshModels, disabled: refreshing || loading, children: refreshing ? "Refreshing..." : "Refresh from provider" }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { onClick: refreshModels, disabled: refreshing || loading, children: refreshing ? "Refreshing..." : "Refresh catalog" }),
         updatedAt ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("span", { className: "muted", children: [
           "Updated: ",
           new Date(updatedAt).toLocaleString()
@@ -27172,10 +27173,50 @@ function Models() {
     message ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { className: "muted", children: message }) : null,
     loading ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { className: "muted", children: "Loading models..." }) : null,
     !loading && models.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { className: "muted", children: "No models loaded yet." }) : null,
-    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("ul", { className: "model-grid", children: models.map((m) => /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("li", { className: "model-item", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "model-name", children: m.name }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "model-meta muted", children: m.id })
-    ] }, m.id)) })
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("ul", { className: "model-grid", children: models.map((m) => /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
+      "li",
+      {
+        className: "model-item clickable-row",
+        tabIndex: 0,
+        onClick: () => setSelectedModel(m),
+        onKeyDown: (e) => {
+          if (e.key === "Enter" || e.key === " ")
+            setSelectedModel(m);
+        },
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "model-name", children: m.name }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "model-meta muted", children: m.id }),
+          m.maxContextLength ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "model-meta muted", children: [
+            "Context: ",
+            m.maxContextLength
+          ] }) : null
+        ]
+      },
+      m.id
+    )) }),
+    selectedModel ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "detail-overlay", role: "dialog", "aria-modal": "true", "aria-labelledby": "model-detail-title", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("aside", { className: "detail-panel", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { className: "modal-close-btn", "aria-label": "Close model detail", onClick: () => setSelectedModel(null), children: "\xD7" }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "detail-heading", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { className: "eyebrow", children: "Model detail" }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("h3", { id: "model-detail-title", children: selectedModel.name }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { className: "muted", children: selectedModel.id })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "detail-content", style: { marginTop: 16 }, children: [
+        selectedModel.description ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { style: { marginTop: 0 }, children: selectedModel.description }) : null,
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("dl", { className: "detail-grid", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("dt", { children: "Maximum context length" }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("dd", { children: selectedModel.maxContextLength || "-" }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("dt", { children: "Max summary generation length" }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("dd", { children: selectedModel.maxSummaryGenerationLength || "-" }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("dt", { children: "Maximum generation length" }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("dd", { children: selectedModel.maxGenerationLength || "-" }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("dt", { children: "Max thinking generation length" }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("dd", { children: selectedModel.maxThinkingGenerationLength || "-" }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("dt", { children: "Modality" }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("dd", { children: selectedModel.modality?.join(", ") || "-" })
+        ] })
+      ] })
+    ] }) }) : null
   ] });
 }
 
