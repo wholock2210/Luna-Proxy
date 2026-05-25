@@ -69,32 +69,34 @@ export default function ProxyPage() {
         </span>
       </div>
 
-      <form className="surface-card form-grid" onSubmit={(e) => e.preventDefault()} aria-label="Proxy config">
-        <label className="field">
-          <span>{t('label.host')}</span>
-          <input value={host} onChange={(e) => setHost(e.target.value)} />
-        </label>
-        <label className="field">
-          <span>{t('label.port')}</span>
-          <input type="number" value={port} onChange={(e) => setPort(Number(e.target.value))} min={1} max={65535} />
-        </label>
-        <label className="field field-wide">
-          <span>{t('proxy.key')}</span>
-          <input type="password" value={proxyKey} onChange={(e) => setProxyKey(e.target.value)} placeholder={t('proxy.keyPlaceholder')} />
-        </label>
-        <div className="action-row field-wide">
-          <button type="button" onClick={saveProxyConfig} disabled={saving}>{saving ? t('common.saving') : t('proxy.save')}</button>
-          <button type="button" onClick={checkHealth}>{t('proxy.checkHealth')}</button>
-        </div>
-      </form>
+      <div className="form-container">
+        <form className="surface-card form-grid" onSubmit={(e) => e.preventDefault()} aria-label="Proxy config">
+          <label className="field">
+            <span>{t('label.host')}</span>
+            <input value={host} onChange={(e) => setHost(e.target.value)} />
+          </label>
+          <label className="field">
+            <span>{t('label.port')}</span>
+            <input type="number" value={port} onChange={(e) => setPort(Number(e.target.value))} min={1} max={65535} />
+          </label>
+          <label className="field field-wide">
+            <span>{t('proxy.key')}</span>
+            <input type="password" value={proxyKey} onChange={(e) => setProxyKey(e.target.value)} placeholder={t('proxy.keyPlaceholder')} />
+          </label>
+          <div className="btn-group field-wide">
+            <button type="button" onClick={saveProxyConfig} disabled={saving}>{saving ? t('common.saving') : t('proxy.save')}</button>
+            <button type="button" onClick={checkHealth} className="secondary">{t('proxy.checkHealth')}</button>
+          </div>
+        </form>
 
-      <div className="surface-card endpoint-card">
-        <h3>{t('proxy.connection')}</h3>
-        <p className="muted">Base URL: <code>{baseUrl}</code></p>
-        <p className="muted">{t('proxy.endpoint')}: <code>{baseUrl}/v1/chat/completions</code></p>
-        <p className="muted">{t('proxy.authHeader')}: <code>Authorization: Bearer &lt;proxy-key&gt;</code> or <code>X-Proxy-Key</code></p>
+        <div className="surface-card endpoint-card">
+          <h3>{t('proxy.connection')}</h3>
+          <p className="muted">Base URL: <code>{baseUrl}</code></p>
+          <p className="muted">{t('proxy.endpoint')}: <code>{baseUrl}/v1/chat/completions</code></p>
+          <p className="muted">{t('proxy.authHeader')}: <code>Authorization: Bearer &lt;proxy-key&gt;</code> or <code>X-Proxy-Key</code></p>
+        </div>
+        {message ? <p className="muted">{message}</p> : null}
       </div>
-      {message ? <p className="muted">{message}</p> : null}
     </section>
   );
 }

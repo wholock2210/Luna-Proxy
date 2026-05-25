@@ -12,7 +12,8 @@
     "dev": "bun ./src/dev.ts",
     "dev:server": "bun ./src/dev.ts",
     "dev:watch": "ts-node-dev --respawn --transpile-only src/dev.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build:frontend": "bun build frontend/src/main.tsx --outfile=public/assets/proxy-luna-app.js --minify && bun -e \"import fs from 'fs'; fs.copyFileSync('frontend/src/styles.css', 'public/styles.css')\""
   },
   "dependencies": {
     "@koa/router": "^10.1.1",

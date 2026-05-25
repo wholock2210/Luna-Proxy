@@ -176,8 +176,8 @@ export default function Runs() {
       ) : null}
 
       {selectedRun ? (
-        <div className="detail-overlay" role="dialog" aria-modal="true" aria-labelledby="run-detail-title">
-          <aside className="detail-panel">
+        <div className="detail-overlay" role="dialog" aria-modal="true" aria-labelledby="run-detail-title" onClick={() => setSelectedRun(null)}>
+          <aside className="detail-panel" onClick={(e) => e.stopPropagation()}>
           <button className="modal-close-btn" aria-label={t('common.close')} onClick={() => setSelectedRun(null)}>×</button>
           <div className="detail-heading">
             <p className="eyebrow">{t('runs.detail')}</p>
