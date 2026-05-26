@@ -122,10 +122,10 @@ export default function Dashboard() {
       <div className="page-heading">
         <div>
           <h2 id="dashboard-title">{t('dashboard.title')}</h2>
-          <p className="muted">{t('dashboard.autoUpdate')} - Trạng thái: {health}</p>
+          <p className="muted">{t('dashboard.autoUpdate')} - {t('dashboard.status')}: {health === 'online' ? t('proxy.online') : health === 'offline' ? t('proxy.offline') : t('dashboard.checking')}</p>
         </div>
         <span className={`status-pill status-${health === 'online' ? 'alive' : health === 'offline' ? 'dead' : 'warn'}`}>
-          {health === 'online' ? 'Hoạt động' : health === 'offline' ? 'Mất kết nối' : 'Đang kiểm tra'}
+          {health === 'online' ? t('proxy.online') : health === 'offline' ? t('proxy.offline') : t('dashboard.checking')}
         </span>
       </div>
 
@@ -134,42 +134,42 @@ export default function Dashboard() {
           <div className="metric-icon">{Icons.providers}</div>
           <h3>{t('dashboard.configuredProviders')}</h3>
           <p className="metric-value">{stats.providers}</p>
-          <p className="muted">Tài khoản khả dụng</p>
+          <p className="muted">{t('dashboard.availableAccountsHint')}</p>
         </article>
         
         <article className="metric-card">
           <div className="metric-icon" style={{color: 'var(--color-info)'}}>{Icons.activity}</div>
           <h3>{t('dashboard.capacityInUse')}</h3>
           <p className="metric-value">{stats.activeCapacity}</p>
-          <p className="muted">Đồng thời hiện tại</p>
+          <p className="muted">{t('dashboard.currentConcurrentHint')}</p>
         </article>
 
         <article className="metric-card">
           <div className="metric-icon" style={{color: 'var(--color-warning)'}}>{Icons.queue}</div>
           <h3>{t('dashboard.queuedRuns')}</h3>
           <p className="metric-value">{stats.queued}</p>
-          <p className="muted">Yêu cầu xếp hàng</p>
+          <p className="muted">{t('dashboard.queuedHint')}</p>
         </article>
 
         <article className="metric-card">
           <div className="metric-icon" style={{color: 'var(--color-danger)'}}>{Icons.errors}</div>
           <h3>{t('dashboard.recentErrors')}</h3>
           <p className="metric-value">{stats.errors}</p>
-          <p className="muted">Giới hạn / Mất hiệu lực</p>
+          <p className="muted">{t('dashboard.errorsHint')}</p>
         </article>
 
         <article className="metric-card">
           <div className="metric-icon" style={{color: 'var(--color-success)'}}>{Icons.requests}</div>
           <h3>{t('dashboard.recentRequests')}</h3>
           <p className="metric-value">{stats.requests}</p>
-          <p className="muted">Tổng số lượt chat</p>
+          <p className="muted">{t('dashboard.requestsHint')}</p>
         </article>
 
         <article className="metric-card">
           <div className="metric-icon" style={{color: 'var(--color-accent)'}}>{Icons.runs}</div>
           <h3>{t('dashboard.activeRuns')}</h3>
           <p className="metric-value">{stats.activeRuns}</p>
-          <p className="muted">Tác vụ đang chạy</p>
+          <p className="muted">{t('dashboard.activeHint')}</p>
         </article>
       </div>
 
@@ -217,7 +217,7 @@ export default function Dashboard() {
         
         {runtime?.locks && Object.keys(runtime.locks).length > 0 && (
           <div className="table-wrap" style={{marginTop: 'var(--space-4)'}}>
-            <h4 style={{marginBottom: 'var(--space-2)'}}>Trạng thái Khóa (Locks)</h4>
+            <h4 style={{marginBottom: 'var(--space-2)'}}>{t('dashboard.locksStatus')}</h4>
             <table className="data-table">
               <thead>
                 <tr>

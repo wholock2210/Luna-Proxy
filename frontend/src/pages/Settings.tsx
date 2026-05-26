@@ -39,7 +39,6 @@ export default function Settings() {
       const res = await fetch('/api/config');
       const data = await res.json();
       const ui = data?.settings?.ui || {};
-      if (ui.language === 'vi' || ui.language === 'en') setLanguage(ui.language);
       const toc = data?.settings?.tokenOverflow || {};
       setOverflowEnabled(toc.enabled !== false);
       setThreshold(Number(toc.threshold || 10000));

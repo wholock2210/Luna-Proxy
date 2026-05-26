@@ -246,6 +246,14 @@ export class ConfigStore {
     this.save();
   }
 
+  setProviderName(providerId: string, name: string) {
+    const p = this.data.providers.find(x => x.id === providerId);
+    if (p) {
+      p.name = name;
+      this.save();
+    }
+  }
+
   setProviderOAuthConfig(providerId: string, oauthConfig: any) {
     const p = this.data.providers.find(x => x.id === providerId);
     if (!p) {

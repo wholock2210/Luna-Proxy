@@ -262,11 +262,14 @@ export class SimpleProxyServer {
     });
 
     this.router.post('/api/provider/token', async ctx => {
-      const {providerId, tokenKey = 'ticket', token, credentials} = ctx.request.body as any;
+      const {providerId, tokenKey = 'ticket', token, credentials, name} = ctx.request.body as any;
       if (!providerId || (!token && !credentials)) {
         ctx.status = 400;
         ctx.body = { error: 'providerId and token or credentials required' };
         return;
+      }
+      if (name && typeof name === 'string' && name.length > 0) {
+        configStore.setProviderName(providerId, name);
       }
       if (credentials && typeof credentials === 'object') {
         for (const [key, value] of Object.entries(credentials)) {

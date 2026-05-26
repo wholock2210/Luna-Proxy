@@ -25949,7 +25949,34 @@ var dictionaries = {
     "settings.egress.checking": "checking...",
     "settings.egress.warning": "IP isolation requires workers running through VPN/proxy/network namespaces. If strict mode is enabled, Proxy-Luna will not call providers directly when no verified worker is available.",
     "settings.save": "Save Settings",
-    "settings.saved": "Settings saved"
+    "settings.saved": "Settings saved",
+    "providers.step1": "Step 1: Login Qwen Web (skip if already logged in)",
+    "providers.step2": "Step 2: Access API Session",
+    "providers.step3": "Step 3: Copy the entire JSON content you see and paste it below",
+    "providers.goToLogin": "Go to login page",
+    "providers.goToApi": "Access API",
+    "providers.jsonPlaceholder": "Paste the raw JSON auth session content here...",
+    "dashboard.status": "Status",
+    "dashboard.currentConcurrent": "Current concurrent runs",
+    "dashboard.currentConcurrentHint": "Active capacity in use",
+    "dashboard.availableAccountsHint": "Configured and verified accounts",
+    "dashboard.queuedHint": "Runs waiting in queue",
+    "dashboard.errorsHint": "Limits or validation errors",
+    "dashboard.requestsHint": "Total chat completion calls",
+    "dashboard.activeHint": "Total active run records",
+    "dashboard.locksStatus": "Locks Status",
+    "proxy.authHeaderHint": "or",
+    "proxy.online": "Online",
+    "proxy.offline": "Offline",
+    "proxy.copied": "API key copied to clipboard",
+    "proxy.copyFailed": "Failed to copy API key",
+    "proxy.generateKey": "Generate random key",
+    "proxy.generateKeySuccess": "API key generated",
+    "common.copy": "Copy",
+    "providers.editAccount": "Edit Account",
+    "providers.displayName": "Display Name",
+    "providers.sessionTokenJson": "Session Token JSON",
+    "providers.sessionTokenPlaceholder": "Paste new JSON auth session here to update (leave blank to keep current)..."
   },
   vi: {
     "app.title": "Trình quản lý Luna Proxy",
@@ -26258,7 +26285,34 @@ var dictionaries = {
     "settings.egress.checking": "đang kiểm tra...",
     "settings.egress.warning": "Cô lập IP yêu cầu worker chạy qua VPN/proxy/network namespace. Nếu bật chế độ nghiêm ngặt, Proxy-Luna sẽ không gọi trực tiếp nhà cung cấp khi không có worker đã xác minh.",
     "settings.save": "Lưu cài đặt",
-    "settings.saved": "Đã lưu cài đặt"
+    "settings.saved": "Đã lưu cài đặt",
+    "providers.step1": "Bước 1: Đăng nhập Qwen Web (bỏ qua nếu đã đăng nhập)",
+    "providers.step2": "Bước 2: Truy cập API Session",
+    "providers.step3": "Bước 3: Sao chép toàn bộ nội dung JSON bạn nhìn thấy và dán vào ô dưới đây",
+    "providers.goToLogin": "Đến trang đăng nhập",
+    "providers.goToApi": "Truy cập API",
+    "providers.jsonPlaceholder": "Dán toàn bộ nội dung JSON auth session tại đây...",
+    "dashboard.status": "Trạng thái",
+    "dashboard.currentConcurrent": "Đồng thời hiện tại",
+    "dashboard.currentConcurrentHint": "Dung lượng đang sử dụng",
+    "dashboard.availableAccountsHint": "Tài khoản khả dụng",
+    "dashboard.queuedHint": "Yêu cầu xếp hàng",
+    "dashboard.errorsHint": "Giới hạn / Mất hiệu lực",
+    "dashboard.requestsHint": "Tổng số lượt chat",
+    "dashboard.activeHint": "Tác vụ đang chạy",
+    "dashboard.locksStatus": "Trạng thái Khóa (Locks)",
+    "proxy.authHeaderHint": "hoặc",
+    "proxy.online": "Hoạt động",
+    "proxy.offline": "Mất kết nối",
+    "proxy.copied": "Đã sao chép API key vào bộ nhớ tạm",
+    "proxy.copyFailed": "Không thể sao chép API key",
+    "proxy.generateKey": "Tạo key ngẫu nhiên",
+    "proxy.generateKeySuccess": "Đã tạo ngẫu nhiên API key",
+    "common.copy": "Sao chép",
+    "providers.editAccount": "Chỉnh sửa tài khoản",
+    "providers.displayName": "Tên hiển thị",
+    "providers.sessionTokenJson": "Session Token JSON",
+    "providers.sessionTokenPlaceholder": "Dán JSON auth session mới tại đây để cập nhật (để trống để giữ nguyên)..."
   }
 };
 var I18nContext = import_react.createContext(null);
@@ -26271,7 +26325,9 @@ function I18nProvider({ children }) {
     let cancelled = false;
     fetch("/api/config").then((res) => res.ok ? res.json() : null).then((data) => {
       if (!cancelled && data?.settings?.ui?.language) {
-        setLanguageState(normalizeLanguage(data.settings.ui.language));
+        const backendLang = normalizeLanguage(data.settings.ui.language);
+        setLanguageState(backendLang);
+        window.localStorage.setItem("luna-ui-language", backendLang);
       }
     }).catch(() => {});
     return () => {
@@ -26283,6 +26339,17 @@ function I18nProvider({ children }) {
     setLanguage: (nextLanguage) => {
       window.localStorage.setItem("luna-ui-language", nextLanguage);
       setLanguageState(nextLanguage);
+      fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          settings: {
+            ui: {
+              language: nextLanguage
+            }
+          }
+        })
+      }).catch((err) => console.error("Failed to sync language to backend:", err));
     },
     t: (key, values) => {
       const template = dictionaries[language][key] || dictionaries.en[key] || key;
@@ -26700,15 +26767,17 @@ function Dashboard() {
                 className: "muted",
                 children: [
                   t("dashboard.autoUpdate"),
-                  " - Trạng thái: ",
-                  health
+                  " - ",
+                  t("dashboard.status"),
+                  ": ",
+                  health === "online" ? t("proxy.online") : health === "offline" ? t("proxy.offline") : t("dashboard.checking")
                 ]
               }, undefined, true, undefined, this)
             ]
           }, undefined, true, undefined, this),
           /* @__PURE__ */ jsx_dev_runtime3.jsxDEV("span", {
             className: `status-pill status-${health === "online" ? "alive" : health === "offline" ? "dead" : "warn"}`,
-            children: health === "online" ? "Hoạt động" : health === "offline" ? "Mất kết nối" : "Đang kiểm tra"
+            children: health === "online" ? t("proxy.online") : health === "offline" ? t("proxy.offline") : t("dashboard.checking")
           }, undefined, false, undefined, this)
         ]
       }, undefined, true, undefined, this),
@@ -26731,7 +26800,7 @@ function Dashboard() {
               }, undefined, false, undefined, this),
               /* @__PURE__ */ jsx_dev_runtime3.jsxDEV("p", {
                 className: "muted",
-                children: "Tài khoản khả dụng"
+                children: t("dashboard.availableAccountsHint")
               }, undefined, false, undefined, this)
             ]
           }, undefined, true, undefined, this),
@@ -26752,7 +26821,7 @@ function Dashboard() {
               }, undefined, false, undefined, this),
               /* @__PURE__ */ jsx_dev_runtime3.jsxDEV("p", {
                 className: "muted",
-                children: "Đồng thời hiện tại"
+                children: t("dashboard.currentConcurrentHint")
               }, undefined, false, undefined, this)
             ]
           }, undefined, true, undefined, this),
@@ -26773,7 +26842,7 @@ function Dashboard() {
               }, undefined, false, undefined, this),
               /* @__PURE__ */ jsx_dev_runtime3.jsxDEV("p", {
                 className: "muted",
-                children: "Yêu cầu xếp hàng"
+                children: t("dashboard.queuedHint")
               }, undefined, false, undefined, this)
             ]
           }, undefined, true, undefined, this),
@@ -26794,7 +26863,7 @@ function Dashboard() {
               }, undefined, false, undefined, this),
               /* @__PURE__ */ jsx_dev_runtime3.jsxDEV("p", {
                 className: "muted",
-                children: "Giới hạn / Mất hiệu lực"
+                children: t("dashboard.errorsHint")
               }, undefined, false, undefined, this)
             ]
           }, undefined, true, undefined, this),
@@ -26815,7 +26884,7 @@ function Dashboard() {
               }, undefined, false, undefined, this),
               /* @__PURE__ */ jsx_dev_runtime3.jsxDEV("p", {
                 className: "muted",
-                children: "Tổng số lượt chat"
+                children: t("dashboard.requestsHint")
               }, undefined, false, undefined, this)
             ]
           }, undefined, true, undefined, this),
@@ -26836,7 +26905,7 @@ function Dashboard() {
               }, undefined, false, undefined, this),
               /* @__PURE__ */ jsx_dev_runtime3.jsxDEV("p", {
                 className: "muted",
-                children: "Tác vụ đang chạy"
+                children: t("dashboard.activeHint")
               }, undefined, false, undefined, this)
             ]
           }, undefined, true, undefined, this)
@@ -26943,7 +27012,7 @@ function Dashboard() {
             children: [
               /* @__PURE__ */ jsx_dev_runtime3.jsxDEV("h4", {
                 style: { marginBottom: "var(--space-2)" },
-                children: "Trạng thái Khóa (Locks)"
+                children: t("dashboard.locksStatus")
               }, undefined, false, undefined, this),
               /* @__PURE__ */ jsx_dev_runtime3.jsxDEV("table", {
                 className: "data-table",
@@ -27101,6 +27170,7 @@ function Providers() {
   const [oauthPolling, setOauthPolling] = import_react3.useState(false);
   const [oauthConfig, setOauthConfig] = import_react3.useState(null);
   const [providerStatus, setProviderStatus] = import_react3.useState({});
+  const [isEditing, setIsEditing] = import_react3.useState(false);
   import_react3.useEffect(() => {
     loadConfig();
   }, []);
@@ -27132,12 +27202,18 @@ function Providers() {
     }
   }
   const configured = providers.filter((p) => p.credentials && Object.keys(p.credentials).length > 0);
+  const [rawJsonInput, setRawJsonInput] = import_react3.useState("");
+  const [emailValue, setEmailValue] = import_react3.useState("");
   function openAdd() {
-    setSelected(null);
+    const bp = builtinProviders[0];
+    setSelected(bp);
     setTokenValue("");
     setCookieValue("");
+    setRawJsonInput("");
+    setEmailValue("");
     setActiveTab("config");
     setValidation(null);
+    setIsEditing(false);
     setShowAdd(true);
   }
   function openEditorForProvider(p) {
@@ -27145,19 +27221,30 @@ function Providers() {
     setSelected(built);
     setTokenValue(p.credentials?.token || "");
     setCookieValue(p.credentials?.cookies || p.credentials?.cookie || "");
+    setRawJsonInput("");
+    setEmailValue(p.name || "");
     setActiveTab("config");
     setValidation(null);
+    setIsEditing(true);
     setShowAdd(true);
   }
   function closeAdd() {
     setShowAdd(false);
   }
-  function pickBuiltin(p) {
-    setSelected(p);
-    setActiveTab("config");
-    setTokenValue("");
-    setCookieValue("");
-    setValidation(null);
+  function handleJsonChange(val) {
+    setRawJsonInput(val);
+    if (!val.trim())
+      return;
+    try {
+      const parsed = JSON.parse(val.trim());
+      if (parsed && parsed.token) {
+        setTokenValue(parsed.token);
+        setEmailValue(parsed.email || parsed.name || "Qwen Account");
+        setValidation(null);
+      } else {
+        setValidation({ text: 'JSON hợp lệ nhưng không tìm thấy trường "token".', type: "error" });
+      }
+    } catch {}
   }
   async function loadOauthConfig(providerId) {
     try {
@@ -27214,19 +27301,25 @@ function Providers() {
     if (!selected)
       return;
     setValidation({ text: t("providers.checking"), type: "info" });
-    const creds = {};
-    const tokenKey = selected.id === "qwen-ai" ? "token" : "ticket";
-    const cookieKey = selected.id === "qwen-ai" ? "cookies" : "cookie";
-    if (tokenValue && tokenValue.trim().length > 0) {
-      creds[tokenKey] = tokenValue.trim();
+    let token = tokenValue;
+    if (rawJsonInput && !token) {
+      try {
+        const parsed = JSON.parse(rawJsonInput.trim());
+        if (parsed.token) {
+          token = parsed.token;
+          setTokenValue(token);
+          setEmailValue(parsed.email || parsed.name || "Qwen Account");
+        }
+      } catch (err) {
+        setValidation({ text: "JSON không hợp lệ. Vui lòng kiểm tra lại.", type: "error" });
+        return;
+      }
     }
-    if (cookieValue && cookieValue.trim().length > 0) {
-      creds[cookieKey] = cookieValue.trim();
-    }
-    if (Object.keys(creds).length === 0) {
-      setValidation({ text: activeTab === "oauth" ? t("providers.startFirst") : t("providers.provideCredential"), type: "error" });
+    if (!token || token.trim().length === 0) {
+      setValidation({ text: "Vui lòng dán JSON chứa token hợp lệ.", type: "error" });
       return;
     }
+    const creds = { token: token.trim() };
     try {
       const resp = await fetch("/api/provider/validate", {
         method: "POST",
@@ -27246,30 +27339,44 @@ function Providers() {
   async function save() {
     if (!selected)
       return;
-    try {
-      const tokenKey = selected.id === "qwen-ai" ? "token" : "ticket";
-      const cookieKey = selected.id === "qwen-ai" ? "cookies" : "cookie";
-      const credentials = {};
-      if (tokenValue && tokenValue.trim().length > 0) {
-        credentials[tokenKey] = tokenValue.trim();
-      }
-      if (cookieValue && cookieValue.trim().length > 0) {
-        credentials[cookieKey] = cookieValue.trim();
-      }
-      if (Object.keys(credentials).length > 0) {
-        await fetch("/api/provider/token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ providerId: selected.id, credentials })
-        });
-      } else {
-        setValidation({ text: activeTab === "oauth" ? t("providers.startFirst") : t("providers.nothingToSave"), type: "error" });
+    let token = tokenValue;
+    let email = emailValue;
+    if (rawJsonInput) {
+      try {
+        const parsed = JSON.parse(rawJsonInput.trim());
+        if (parsed.token) {
+          token = parsed.token;
+          email = parsed.email || parsed.name || "Qwen Account";
+        }
+      } catch {
+        setValidation({ text: "JSON không hợp lệ. Vui lòng kiểm tra lại.", type: "error" });
         return;
       }
-      await loadConfig();
-      setShowAdd(false);
+    }
+    if (!token || token.trim().length === 0) {
+      setValidation({ text: "Vui lòng dán JSON chứa token hợp lệ.", type: "error" });
+      return;
+    }
+    try {
+      const credentials = { token: token.trim() };
+      const res = await fetch("/api/provider/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          providerId: selected.id,
+          credentials,
+          name: email
+        })
+      });
+      if (res.ok) {
+        await loadConfig();
+        setShowAdd(false);
+      } else {
+        setValidation({ text: "Lưu cấu hình thất bại.", type: "error" });
+      }
     } catch (err) {
       console.error("save failed", err);
+      setValidation({ text: "Lỗi kết nối khi lưu cấu hình.", type: "error" });
     }
   }
   return /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
@@ -27359,7 +27466,7 @@ function Providers() {
                 /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("h3", {
                   id: "modal-title",
                   style: { fontSize: "1.25rem" },
-                  children: selected ? selected.name : t("providers.add")
+                  children: isEditing ? t("providers.editAccount") : t("providers.add")
                 }, undefined, false, undefined, this),
                 /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("button", {
                   "aria-label": t("common.close"),
@@ -27371,149 +27478,109 @@ function Providers() {
             }, undefined, true, undefined, this),
             /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
               style: { display: "flex", flexDirection: "column", gap: "var(--space-4)" },
-              children: !selected ? /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
-                children: [
-                  /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("label", {
-                    className: "muted",
-                    style: { display: "block", marginBottom: "var(--space-2)" },
-                    children: t("providers.available")
-                  }, undefined, false, undefined, this),
-                  /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
-                    className: "btn-group",
-                    style: { flexWrap: "wrap" },
-                    children: builtinProviders.map((bp) => /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("button", {
-                      className: "btn secondary",
-                      onClick: () => pickBuiltin(bp),
-                      children: bp.name
-                    }, bp.id, false, undefined, this))
-                  }, undefined, false, undefined, this)
-                ]
-              }, undefined, true, undefined, this) : /* @__PURE__ */ jsx_dev_runtime4.jsxDEV(jsx_dev_runtime4.Fragment, {
-                children: [
-                  /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
-                    className: "btn-group",
-                    style: { borderBottom: "1px solid var(--border-strong)", paddingBottom: "var(--space-3)" },
-                    children: [
-                      /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("button", {
-                        className: `btn ${activeTab === "config" ? "" : "secondary"}`,
-                        onClick: () => setActiveTab("config"),
-                        children: t("providers.config")
-                      }, undefined, false, undefined, this),
-                      /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("button", {
-                        className: `btn ${activeTab === "oauth" ? "" : "secondary"}`,
-                        onClick: () => setActiveTab("oauth"),
-                        children: "OAuth"
-                      }, undefined, false, undefined, this)
-                    ]
-                  }, undefined, true, undefined, this),
-                  activeTab === "config" ? /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
-                    style: { display: "flex", flexDirection: "column", gap: "var(--space-3)" },
-                    children: [
-                      /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
-                        className: "field",
-                        children: [
-                          /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("label", {
-                            children: t("providers.token")
-                          }, undefined, false, undefined, this),
-                          /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("input", {
-                            value: tokenValue,
-                            onChange: (e) => setTokenValue(e.target.value),
-                            placeholder: "Nhập token tại đây..."
-                          }, undefined, false, undefined, this),
-                          /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("span", {
-                            className: "muted",
-                            style: { fontSize: "0.8rem" },
-                            children: t("providers.tokenHint")
-                          }, undefined, false, undefined, this)
-                        ]
-                      }, undefined, true, undefined, this),
-                      /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
-                        className: "field",
-                        children: [
-                          /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("label", {
-                            children: t("providers.cookie")
-                          }, undefined, false, undefined, this),
-                          /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("textarea", {
-                            value: cookieValue,
-                            onChange: (e) => setCookieValue(e.target.value),
-                            style: { height: "80px", resize: "vertical" },
-                            placeholder: "Nhập cookie thô tại đây..."
-                          }, undefined, false, undefined, this)
-                        ]
-                      }, undefined, true, undefined, this),
-                      /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
-                        className: "btn-group",
-                        style: { marginTop: "var(--space-2)" },
-                        children: /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("button", {
-                          className: "btn secondary",
-                          onClick: openLoginAndSwitch,
-                          children: t("providers.openLogin")
+              children: [
+                isEditing ? /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
+                  style: { display: "flex", flexDirection: "column", gap: "var(--space-4)" },
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("label", {
+                      className: "field",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("span", {
+                          children: t("providers.displayName")
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("input", {
+                          type: "text",
+                          value: emailValue,
+                          onChange: (e) => setEmailValue(e.target.value),
+                          placeholder: "lole7176@gmail.com"
                         }, undefined, false, undefined, this)
-                      }, undefined, false, undefined, this)
-                    ]
-                  }, undefined, true, undefined, this) : /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
-                    style: { display: "flex", flexDirection: "column", gap: "var(--space-3)", alignItems: "center", textAlign: "center" },
-                    children: [
-                      /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("p", {
-                        className: "muted",
-                        children: t("providers.oauthHint")
-                      }, undefined, false, undefined, this),
-                      /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("button", {
-                        onClick: startOAuth,
-                        disabled: oauthPolling,
-                        className: "btn",
-                        children: oauthPolling ? t("providers.waitLogin") : t("providers.startOAuth")
-                      }, undefined, false, undefined, this),
-                      (tokenValue || cookieValue) && /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
-                        className: "surface-card",
-                        style: { width: "100%", textAlign: "left", marginTop: "var(--space-3)" },
-                        children: [
-                          tokenValue && /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
-                            className: "provider-credentials",
-                            style: { marginBottom: 4 },
-                            children: [
-                              "token: ",
-                              tokenValue.slice(0, 12),
-                              "..."
-                            ]
-                          }, undefined, true, undefined, this),
-                          cookieValue && /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
-                            className: "provider-credentials",
-                            children: [
-                              "cookies: ",
-                              cookieValue.slice(0, 12),
-                              "..."
-                            ]
-                          }, undefined, true, undefined, this)
-                        ]
-                      }, undefined, true, undefined, this)
-                    ]
-                  }, undefined, true, undefined, this),
-                  validation && /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
-                    className: `validation-box status-${validation.type}`,
-                    children: /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("span", {
-                      children: validation.text
+                      ]
+                    }, undefined, true, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("label", {
+                      className: "field",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("span", {
+                          children: t("providers.sessionTokenJson")
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("textarea", {
+                          value: rawJsonInput,
+                          onChange: (e) => handleJsonChange(e.target.value),
+                          style: { height: "120px", resize: "vertical", fontFamily: "monospace", fontSize: "0.85rem" },
+                          placeholder: t("providers.sessionTokenPlaceholder")
+                        }, undefined, false, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this)
+                  ]
+                }, undefined, true, undefined, this) : /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
+                  style: { display: "flex", flexDirection: "column", gap: "var(--space-4)" },
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("strong", {
+                          style: { display: "block", marginBottom: "var(--space-2)" },
+                          children: t("providers.step1")
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("button", {
+                          className: "btn secondary",
+                          onClick: () => window.open("https://chat.qwen.ai/auth", "_blank"),
+                          children: t("providers.goToLogin")
+                        }, undefined, false, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("strong", {
+                          style: { display: "block", marginBottom: "var(--space-2)" },
+                          children: t("providers.step2")
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("button", {
+                          className: "btn secondary",
+                          onClick: () => window.open("https://chat.qwen.ai/api/v1/auths/", "_blank"),
+                          children: t("providers.goToApi")
+                        }, undefined, false, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
+                      className: "field",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("strong", {
+                          style: { display: "block", marginBottom: "var(--space-2)" },
+                          children: t("providers.step3")
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("textarea", {
+                          value: rawJsonInput,
+                          onChange: (e) => handleJsonChange(e.target.value),
+                          style: { height: "120px", resize: "vertical", fontFamily: "monospace", fontSize: "0.85rem" },
+                          placeholder: t("providers.jsonPlaceholder")
+                        }, undefined, false, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this)
+                  ]
+                }, undefined, true, undefined, this),
+                validation && /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
+                  className: `validation-box status-${validation.type}`,
+                  children: /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("span", {
+                    children: validation.text
+                  }, undefined, false, undefined, this)
+                }, undefined, false, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
+                  className: "btn-group",
+                  style: { justifyContent: "flex-end", marginTop: "var(--space-2)" },
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("button", {
+                      className: "btn secondary",
+                      onClick: validate,
+                      children: t("providers.validate")
+                    }, undefined, false, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("button", {
+                      className: "btn",
+                      onClick: save,
+                      children: t("providers.save")
                     }, undefined, false, undefined, this)
-                  }, undefined, false, undefined, this),
-                  /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("div", {
-                    className: "btn-group",
-                    style: { justifyContent: "flex-end", marginTop: "var(--space-2)" },
-                    children: [
-                      /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("button", {
-                        className: "btn secondary",
-                        onClick: validate,
-                        children: t("providers.validate")
-                      }, undefined, false, undefined, this),
-                      /* @__PURE__ */ jsx_dev_runtime4.jsxDEV("button", {
-                        className: "btn",
-                        onClick: save,
-                        children: t("providers.save")
-                      }, undefined, false, undefined, this)
-                    ]
-                  }, undefined, true, undefined, this)
-                ]
-              }, undefined, true, undefined, this)
-            }, undefined, false, undefined, this)
+                  ]
+                }, undefined, true, undefined, this)
+              ]
+            }, undefined, true, undefined, this)
           ]
         }, undefined, true, undefined, this)
       }, undefined, false, undefined, this)
@@ -27532,10 +27599,20 @@ function ProxyPage() {
   const [saving, setSaving] = import_react4.useState(false);
   const [message, setMessage] = import_react4.useState(null);
   const [health, setHealth] = import_react4.useState("checking");
+  const [toast, setToast] = import_react4.useState(null);
+  function showToast(msg, type = "success") {
+    setToast({ message: msg, type });
+  }
+  import_react4.useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
   const baseUrl = import_react4.useMemo(() => `http://${host}:${port}`, [host, port]);
   import_react4.useEffect(() => {
     loadConfig();
-    checkHealth();
+    checkHealth(true);
   }, []);
   async function loadConfig() {
     try {
@@ -27550,7 +27627,6 @@ function ProxyPage() {
   }
   async function saveProxyConfig() {
     setSaving(true);
-    setMessage(null);
     try {
       const res = await fetch("/api/config", {
         method: "POST",
@@ -27559,20 +27635,48 @@ function ProxyPage() {
       });
       if (!res.ok)
         throw new Error(`HTTP ${res.status}`);
-      setMessage(t("proxy.saved"));
+      showToast(t("proxy.saved"), "success");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : t("proxy.saveFailed"));
+      showToast(error instanceof Error ? error.message : t("proxy.saveFailed"), "error");
     } finally {
       setSaving(false);
     }
   }
-  async function checkHealth() {
+  function generateRandomKey() {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let result = "sk_";
+    for (let i = 0;i < 25; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setProxyKey(result);
+    showToast(t("proxy.generateKeySuccess"), "success");
+  }
+  function copyToClipboard() {
+    if (!proxyKey)
+      return;
+    navigator.clipboard.writeText(proxyKey).then(() => {
+      showToast(t("proxy.copied"), "success");
+    }).catch(() => {
+      showToast(t("proxy.copyFailed"), "error");
+    });
+  }
+  async function checkHealth(silent = false) {
     setHealth("checking");
     try {
       const res = await fetch("/health");
-      setHealth(res.ok ? "online" : "offline");
+      if (res.ok) {
+        setHealth("online");
+        if (!silent)
+          showToast(t("proxy.online"), "success");
+      } else {
+        setHealth("offline");
+        if (!silent)
+          showToast(t("proxy.offline"), "error");
+      }
     } catch {
       setHealth("offline");
+      if (!silent)
+        showToast(t("proxy.offline"), "error");
     }
   }
   return /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("section", {
@@ -27590,13 +27694,13 @@ function ProxyPage() {
               }, undefined, false, undefined, this),
               /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("h2", {
                 id: "proxy-title",
-                children: "Proxy"
+                children: t("nav.proxy")
               }, undefined, false, undefined, this)
             ]
           }, undefined, true, undefined, this),
           /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("span", {
             className: `status-pill status-${health === "online" ? "alive" : health === "offline" ? "dead" : "warn"}`,
-            children: health === "online" ? "Online" : health === "offline" ? "Offline" : "Checking"
+            children: health === "online" ? t("proxy.online") : health === "offline" ? t("proxy.offline") : t("dashboard.checking")
           }, undefined, false, undefined, this)
         ]
       }, undefined, true, undefined, this),
@@ -27641,12 +27745,70 @@ function ProxyPage() {
                   /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("span", {
                     children: t("proxy.key")
                   }, undefined, false, undefined, this),
-                  /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("input", {
-                    type: "password",
-                    value: proxyKey,
-                    onChange: (e) => setProxyKey(e.target.value),
-                    placeholder: t("proxy.keyPlaceholder")
-                  }, undefined, false, undefined, this)
+                  /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("div", {
+                    style: { display: "flex", gap: "var(--space-2)" },
+                    children: [
+                      /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("input", {
+                        type: "password",
+                        value: proxyKey,
+                        onChange: (e) => setProxyKey(e.target.value),
+                        placeholder: t("proxy.keyPlaceholder"),
+                        style: { flex: 1 }
+                      }, undefined, false, undefined, this),
+                      /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("button", {
+                        type: "button",
+                        className: "btn secondary",
+                        onClick: generateRandomKey,
+                        title: t("proxy.generateKey"),
+                        style: { padding: "0 12px", display: "flex", alignItems: "center", justifyContent: "center", height: "38px", minWidth: "38px" },
+                        "aria-label": t("proxy.generateKey"),
+                        children: /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("svg", {
+                          width: "16",
+                          height: "16",
+                          viewBox: "0 0 24 24",
+                          fill: "none",
+                          stroke: "currentColor",
+                          strokeWidth: "2",
+                          strokeLinecap: "round",
+                          strokeLinejoin: "round",
+                          children: /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("path", {
+                            d: "M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"
+                          }, undefined, false, undefined, this)
+                        }, undefined, false, undefined, this)
+                      }, undefined, false, undefined, this),
+                      /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("button", {
+                        type: "button",
+                        className: "btn secondary",
+                        onClick: copyToClipboard,
+                        title: t("common.copy"),
+                        style: { padding: "0 12px", display: "flex", alignItems: "center", justifyContent: "center", height: "38px", minWidth: "38px" },
+                        "aria-label": t("common.copy"),
+                        children: /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("svg", {
+                          width: "16",
+                          height: "16",
+                          viewBox: "0 0 24 24",
+                          fill: "none",
+                          stroke: "currentColor",
+                          strokeWidth: "2",
+                          strokeLinecap: "round",
+                          strokeLinejoin: "round",
+                          children: [
+                            /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("rect", {
+                              x: "9",
+                              y: "9",
+                              width: "13",
+                              height: "13",
+                              rx: "2",
+                              ry: "2"
+                            }, undefined, false, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("path", {
+                              d: "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                            }, undefined, false, undefined, this)
+                          ]
+                        }, undefined, true, undefined, this)
+                      }, undefined, false, undefined, this)
+                    ]
+                  }, undefined, true, undefined, this)
                 ]
               }, undefined, true, undefined, this),
               /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("div", {
@@ -27660,7 +27822,7 @@ function ProxyPage() {
                   }, undefined, false, undefined, this),
                   /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("button", {
                     type: "button",
-                    onClick: checkHealth,
+                    onClick: () => checkHealth(false),
                     className: "secondary",
                     children: t("proxy.checkHealth")
                   }, undefined, false, undefined, this)
@@ -27677,7 +27839,8 @@ function ProxyPage() {
               /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("p", {
                 className: "muted",
                 children: [
-                  "Base URL: ",
+                  t("label.baseUrl"),
+                  ": ",
                   /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("code", {
                     children: baseUrl
                   }, undefined, false, undefined, this)
@@ -27704,7 +27867,9 @@ function ProxyPage() {
                   /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("code", {
                     children: "Authorization: Bearer <proxy-key>"
                   }, undefined, false, undefined, this),
-                  " or ",
+                  " ",
+                  t("proxy.authHeaderHint"),
+                  " ",
                   /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("code", {
                     children: "X-Proxy-Key"
                   }, undefined, false, undefined, this)
@@ -27712,10 +27877,89 @@ function ProxyPage() {
               }, undefined, true, undefined, this)
             ]
           }, undefined, true, undefined, this),
-          message ? /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("p", {
-            className: "muted",
-            children: message
-          }, undefined, false, undefined, this) : null
+          toast && /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("div", {
+            className: `toast-popup ${toast.type}`,
+            role: "status",
+            children: [
+              toast.type === "success" && /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("svg", {
+                width: "18",
+                height: "18",
+                viewBox: "0 0 24 24",
+                fill: "none",
+                stroke: "currentColor",
+                strokeWidth: "2.5",
+                strokeLinecap: "round",
+                strokeLinejoin: "round",
+                style: { marginRight: "6px" },
+                children: /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("polyline", {
+                  points: "20 6 9 17 4 12"
+                }, undefined, false, undefined, this)
+              }, undefined, false, undefined, this),
+              toast.type === "error" && /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("svg", {
+                width: "18",
+                height: "18",
+                viewBox: "0 0 24 24",
+                fill: "none",
+                stroke: "currentColor",
+                strokeWidth: "2.5",
+                strokeLinecap: "round",
+                strokeLinejoin: "round",
+                style: { marginRight: "6px" },
+                children: [
+                  /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("circle", {
+                    cx: "12",
+                    cy: "12",
+                    r: "10"
+                  }, undefined, false, undefined, this),
+                  /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("line", {
+                    x1: "12",
+                    y1: "8",
+                    x2: "12",
+                    y2: "12"
+                  }, undefined, false, undefined, this),
+                  /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("line", {
+                    x1: "12",
+                    y1: "16",
+                    x2: "12.01",
+                    y2: "16"
+                  }, undefined, false, undefined, this)
+                ]
+              }, undefined, true, undefined, this),
+              toast.type === "info" && /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("svg", {
+                width: "18",
+                height: "18",
+                viewBox: "0 0 24 24",
+                fill: "none",
+                stroke: "currentColor",
+                strokeWidth: "2.5",
+                strokeLinecap: "round",
+                strokeLinejoin: "round",
+                style: { marginRight: "6px" },
+                children: [
+                  /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("circle", {
+                    cx: "12",
+                    cy: "12",
+                    r: "10"
+                  }, undefined, false, undefined, this),
+                  /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("line", {
+                    x1: "12",
+                    y1: "16",
+                    x2: "12",
+                    y2: "12"
+                  }, undefined, false, undefined, this),
+                  /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("line", {
+                    x1: "12",
+                    y1: "8",
+                    x2: "12.01",
+                    y2: "8"
+                  }, undefined, false, undefined, this)
+                ]
+              }, undefined, true, undefined, this),
+              /* @__PURE__ */ jsx_dev_runtime5.jsxDEV("span", {
+                children: toast.message
+              }, undefined, false, undefined, this)
+            ]
+          }, undefined, true, undefined, this)
         ]
       }, undefined, true, undefined, this)
     ]
@@ -29949,8 +30193,6 @@ function Settings() {
       const res = await fetch("/api/config");
       const data = await res.json();
       const ui = data?.settings?.ui || {};
-      if (ui.language === "vi" || ui.language === "en")
-        setLanguage(ui.language);
       const toc = data?.settings?.tokenOverflow || {};
       setOverflowEnabled(toc.enabled !== false);
       setThreshold(Number(toc.threshold || 1e4));

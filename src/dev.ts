@@ -62,8 +62,16 @@ async function buildFrontend(): Promise<boolean> {
 
 		// Bun build ra main.js, đổi tên thành proxy-luna-app.js
 		if (fs.existsSync(mainJs)) {
-			if (fs.existsSync(outJs)) fs.unlinkSync(outJs);
-			fs.renameSync(mainJs, outJs);
+			try {
+				fs.copyFileSync(mainJs, outJs);
+				fs.unlinkSync(mainJs);
+			} catch (err) {
+				// Fallback sang rename nếu copy lỗi
+				if (fs.existsSync(outJs)) {
+					try { fs.unlinkSync(outJs); } catch {}
+				}
+				fs.renameSync(mainJs, outJs);
+			}
 		}
 
 		// Sao chép CSS
@@ -131,7 +139,7 @@ async function buildFrontend(): Promise<boolean> {
 
 process.on('SIGINT', async () => {
 	console.log('Stopping server...');
-	await simpleProxyServer.stop();
+	//await simpleProxyServer.stop();
 	process.exit(0);
 });
 

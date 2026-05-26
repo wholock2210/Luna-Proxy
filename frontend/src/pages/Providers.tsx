@@ -21,6 +21,7 @@ export default function Providers() {
   const [oauthPolling, setOauthPolling] = useState(false);
   const [oauthConfig, setOauthConfig] = useState<any>(null);
   const [providerStatus, setProviderStatus] = useState<Record<string, ProviderStatus>>({});
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => { loadConfig(); }, []);
 
@@ -55,12 +56,19 @@ export default function Providers() {
 
   const configured = providers.filter(p => p.credentials && Object.keys(p.credentials).length > 0);
 
+  const [rawJsonInput, setRawJsonInput] = useState('');
+  const [emailValue, setEmailValue] = useState('');
+
   function openAdd() {
-    setSelected(null);
+    const bp = builtinProviders[0];
+    setSelected(bp);
     setTokenValue('');
     setCookieValue('');
+    setRawJsonInput('');
+    setEmailValue('');
     setActiveTab('config');
     setValidation(null);
+    setIsEditing(false);
     setShowAdd(true);
   }
 
@@ -69,8 +77,11 @@ export default function Providers() {
     setSelected(built);
     setTokenValue(p.credentials?.token || '');
     setCookieValue((p.credentials?.cookies || p.credentials?.cookie || ''));
+    setRawJsonInput('');
+    setEmailValue(p.name || '');
     setActiveTab('config');
     setValidation(null);
+    setIsEditing(true);
     setShowAdd(true);
   }
 
@@ -78,12 +89,21 @@ export default function Providers() {
     setShowAdd(false);
   }
 
-  function pickBuiltin(p: any) {
-    setSelected(p);
-    setActiveTab('config');
-    setTokenValue('');
-    setCookieValue('');
-    setValidation(null);
+  function handleJsonChange(val: string) {
+    setRawJsonInput(val);
+    if (!val.trim()) return;
+    try {
+      const parsed = JSON.parse(val.trim());
+      if (parsed && parsed.token) {
+        setTokenValue(parsed.token);
+        setEmailValue(parsed.email || parsed.name || 'Qwen Account');
+        setValidation(null);
+      } else {
+        setValidation({ text: 'JSON hợp lệ nhưng không tìm thấy trường "token".', type: 'error' });
+      }
+    } catch {
+      // Đang dán JSON chưa hoàn thành, bỏ qua báo lỗi tạm thời
+    }
   }
 
   async function loadOauthConfig(providerId: string) {
@@ -140,20 +160,28 @@ export default function Providers() {
   async function validate() {
     if (!selected) return;
     setValidation({ text: t('providers.checking'), type: 'info' });
-    const creds: any = {};
-    const tokenKey = selected.id === 'qwen-ai' ? 'token' : 'ticket';
-    const cookieKey = selected.id === 'qwen-ai' ? 'cookies' : 'cookie';
+    
+    let token = tokenValue;
+    if (rawJsonInput && !token) {
+      try {
+        const parsed = JSON.parse(rawJsonInput.trim());
+        if (parsed.token) {
+          token = parsed.token;
+          setTokenValue(token);
+          setEmailValue(parsed.email || parsed.name || 'Qwen Account');
+        }
+      } catch (err) {
+        setValidation({ text: 'JSON không hợp lệ. Vui lòng kiểm tra lại.', type: 'error' });
+        return;
+      }
+    }
 
-    if (tokenValue && tokenValue.trim().length > 0) {
-      creds[tokenKey] = tokenValue.trim();
-    }
-    if (cookieValue && cookieValue.trim().length > 0) {
-      creds[cookieKey] = cookieValue.trim();
-    }
-    if (Object.keys(creds).length === 0) {
-      setValidation({ text: activeTab === 'oauth' ? t('providers.startFirst') : t('providers.provideCredential'), type: 'error' });
+    if (!token || token.trim().length === 0) {
+      setValidation({ text: 'Vui lòng dán JSON chứa token hợp lệ.', type: 'error' });
       return;
     }
+
+    const creds = { token: token.trim() };
 
     try {
       const resp = await fetch('/api/provider/validate', {
@@ -171,32 +199,47 @@ export default function Providers() {
 
   async function save() {
     if (!selected) return;
-    try {
-      const tokenKey = selected.id === 'qwen-ai' ? 'token' : 'ticket';
-      const cookieKey = selected.id === 'qwen-ai' ? 'cookies' : 'cookie';
+    let token = tokenValue;
+    let email = emailValue;
 
-      const credentials: Record<string, string> = {};
-      if (tokenValue && tokenValue.trim().length > 0) {
-        credentials[tokenKey] = tokenValue.trim();
-      }
-      if (cookieValue && cookieValue.trim().length > 0) {
-        credentials[cookieKey] = cookieValue.trim();
-      }
-
-      if (Object.keys(credentials).length > 0) {
-        await fetch('/api/provider/token', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({providerId: selected.id, credentials}),
-        });
-      } else {
-        setValidation({ text: activeTab === 'oauth' ? t('providers.startFirst') : t('providers.nothingToSave'), type: 'error' });
+    if (rawJsonInput) {
+      try {
+        const parsed = JSON.parse(rawJsonInput.trim());
+        if (parsed.token) {
+          token = parsed.token;
+          email = parsed.email || parsed.name || 'Qwen Account';
+        }
+      } catch {
+        setValidation({ text: 'JSON không hợp lệ. Vui lòng kiểm tra lại.', type: 'error' });
         return;
       }
-      await loadConfig();
-      setShowAdd(false);
+    }
+
+    if (!token || token.trim().length === 0) {
+      setValidation({ text: 'Vui lòng dán JSON chứa token hợp lệ.', type: 'error' });
+      return;
+    }
+
+    try {
+      const credentials = { token: token.trim() };
+      const res = await fetch('/api/provider/token', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          providerId: selected.id,
+          credentials,
+          name: email
+        }),
+      });
+      if (res.ok) {
+        await loadConfig();
+        setShowAdd(false);
+      } else {
+        setValidation({ text: 'Lưu cấu hình thất bại.', type: 'error' });
+      }
     } catch (err) {
       console.error('save failed', err);
+      setValidation({ text: 'Lỗi kết nối khi lưu cấu hình.', type: 'error' });
     }
   }
 
@@ -234,75 +277,72 @@ export default function Providers() {
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
           <div className="modal-panel">
             <div className="surface-card-head" style={{ marginBottom: 'var(--space-4)' }}>
-              <h3 id="modal-title" style={{ fontSize: '1.25rem' }}>{selected ? selected.name : t('providers.add')}</h3>
+              <h3 id="modal-title" style={{ fontSize: '1.25rem' }}>
+                {isEditing ? t('providers.editAccount') : t('providers.add')}
+              </h3>
               <button aria-label={t('common.close')} className="modal-close-btn" onClick={closeAdd}>×</button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-              {!selected ? (
-                <div>
-                  <label className="muted" style={{ display: 'block', marginBottom: 'var(--space-2)' }}>{t('providers.available')}</label>
-                  <div className="btn-group" style={{ flexWrap: 'wrap' }}>
-                    {builtinProviders.map(bp => (
-                      <button key={bp.id} className="btn secondary" onClick={() => pickBuiltin(bp)}>
-                        {bp.name}
-                      </button>
-                    ))}
-                  </div>
+              {isEditing ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                  <label className="field">
+                    <span>{t('providers.displayName')}</span>
+                    <input
+                      type="text"
+                      value={emailValue}
+                      onChange={(e) => setEmailValue(e.target.value)}
+                      placeholder="lole7176@gmail.com"
+                    />
+                  </label>
+                  <label className="field">
+                    <span>{t('providers.sessionTokenJson')}</span>
+                    <textarea
+                      value={rawJsonInput}
+                      onChange={(e) => handleJsonChange(e.target.value)}
+                      style={{ height: '120px', resize: 'vertical', fontFamily: 'monospace', fontSize: '0.85rem' }}
+                      placeholder={t('providers.sessionTokenPlaceholder')}
+                    />
+                  </label>
                 </div>
               ) : (
-                <>
-                  <div className="btn-group" style={{ borderBottom: '1px solid var(--border-strong)', paddingBottom: 'var(--space-3)' }}>
-                    <button className={`btn ${activeTab === 'config' ? '' : 'secondary'}`} onClick={() => setActiveTab('config')}>
-                      {t('providers.config')}
-                    </button>
-                    <button className={`btn ${activeTab === 'oauth' ? '' : 'secondary'}`} onClick={() => setActiveTab('oauth')}>
-                      OAuth
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                  <div>
+                    <strong style={{ display: 'block', marginBottom: 'var(--space-2)' }}>{t('providers.step1')}</strong>
+                    <button className="btn secondary" onClick={() => window.open('https://chat.qwen.ai/auth', '_blank')}>
+                      {t('providers.goToLogin')}
                     </button>
                   </div>
 
-                  {activeTab === 'config' ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                      <div className="field">
-                        <label>{t('providers.token')}</label>
-                        <input value={tokenValue} onChange={(e) => setTokenValue(e.target.value)} placeholder="Nhập token tại đây..." />
-                        <span className="muted" style={{ fontSize: '0.8rem' }}>{t('providers.tokenHint')}</span>
-                      </div>
-                      <div className="field">
-                        <label>{t('providers.cookie')}</label>
-                        <textarea value={cookieValue} onChange={(e)=>setCookieValue(e.target.value)} style={{ height: '80px', resize: 'vertical' }} placeholder="Nhập cookie thô tại đây..." />
-                      </div>
-                      <div className="btn-group" style={{ marginTop: 'var(--space-2)' }}>
-                        <button className="btn secondary" onClick={openLoginAndSwitch}>{t('providers.openLogin')}</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', alignItems: 'center', textAlign: 'center' }}>
-                      <p className="muted">{t('providers.oauthHint')}</p>
-                      <button onClick={startOAuth} disabled={oauthPolling} className="btn">
-                        {oauthPolling ? t('providers.waitLogin') : t('providers.startOAuth')}
-                      </button>
-                      {(tokenValue || cookieValue) && (
-                        <div className="surface-card" style={{ width: '100%', textAlign: 'left', marginTop: 'var(--space-3)' }}>
-                          {tokenValue && <div className="provider-credentials" style={{ marginBottom: 4 }}>token: {tokenValue.slice(0, 12)}...</div>}
-                          {cookieValue && <div className="provider-credentials">cookies: {cookieValue.slice(0, 12)}...</div>}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {validation && (
-                    <div className={`validation-box status-${validation.type}`}>
-                      <span>{validation.text}</span>
-                    </div>
-                  )}
-
-                  <div className="btn-group" style={{ justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
-                    <button className="btn secondary" onClick={validate}>{t('providers.validate')}</button>
-                    <button className="btn" onClick={save}>{t('providers.save')}</button>
+                  <div>
+                    <strong style={{ display: 'block', marginBottom: 'var(--space-2)' }}>{t('providers.step2')}</strong>
+                    <button className="btn secondary" onClick={() => window.open('https://chat.qwen.ai/api/v1/auths/', '_blank')}>
+                      {t('providers.goToApi')}
+                    </button>
                   </div>
-                </>
+
+                  <div className="field">
+                    <strong style={{ display: 'block', marginBottom: 'var(--space-2)' }}>{t('providers.step3')}</strong>
+                    <textarea
+                      value={rawJsonInput}
+                      onChange={(e) => handleJsonChange(e.target.value)}
+                      style={{ height: '120px', resize: 'vertical', fontFamily: 'monospace', fontSize: '0.85rem' }}
+                      placeholder={t('providers.jsonPlaceholder')}
+                    />
+                  </div>
+                </div>
               )}
+
+              {validation && (
+                <div className={`validation-box status-${validation.type}`}>
+                  <span>{validation.text}</span>
+                </div>
+              )}
+
+              <div className="btn-group" style={{ justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
+                <button className="btn secondary" onClick={validate}>{t('providers.validate')}</button>
+                <button className="btn" onClick={save}>{t('providers.save')}</button>
+              </div>
             </div>
           </div>
         </div>

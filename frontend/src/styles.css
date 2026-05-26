@@ -644,3 +644,44 @@ button.danger:hover {
   .form-grid { grid-template-columns: 1fr; }
   .form-grid .field-wide { grid-column: span 1; }
 }
+
+/* Toast Notification Popup */
+.toast-popup {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  background: rgba(24, 23, 32, 0.85);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  z-index: 9999;
+  animation: slideInRight 350ms cubic-bezier(0.16, 1, 0.3, 1);
+  font-size: 0.95rem;
+  font-weight: 500;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.toast-popup.success {
+  border-color: var(--color-success);
+  color: var(--color-success);
+  background: rgba(18, 183, 106, 0.12);
+}
+.toast-popup.error {
+  border-color: var(--color-danger);
+  color: #ff6459;
+  background: rgba(240, 68, 56, 0.12);
+}
+.toast-popup.info {
+  border-color: var(--color-info);
+  color: var(--color-info);
+  background: rgba(14, 165, 233, 0.12);
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(120%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
