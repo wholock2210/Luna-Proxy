@@ -324,8 +324,8 @@ export default function Sessions() {
       {detailLoading ? <p className="muted">{t('sessions.loadingDetail')}</p> : null}
 
       {detail && !detailLoading ? (
-        <div className="detail-overlay" role="dialog" aria-modal="true" aria-labelledby="session-detail-title">
-          <aside className="detail-panel">
+        <div className="detail-overlay" role="dialog" aria-modal="true" aria-labelledby="session-detail-title" onClick={() => { setSelectedId(null); setDetail(null); }}>
+          <aside className="detail-panel" onClick={(e) => e.stopPropagation()}>
           <button className="modal-close-btn" aria-label={t('common.close')} onClick={() => { setSelectedId(null); setDetail(null); }}>×</button>
           <div className="detail-heading">
             <p className="eyebrow">{t('sessions.detail')}</p>

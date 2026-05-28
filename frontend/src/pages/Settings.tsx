@@ -39,7 +39,6 @@ export default function Settings() {
       const res = await fetch('/api/config');
       const data = await res.json();
       const ui = data?.settings?.ui || {};
-      if (ui.language === 'vi' || ui.language === 'en') setLanguage(ui.language);
       const toc = data?.settings?.tokenOverflow || {};
       setOverflowEnabled(toc.enabled !== false);
       setThreshold(Number(toc.threshold || 10000));
@@ -141,213 +140,214 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="surface-card" style={{marginBottom: 16}}>
-        <h3>{t('settings.ui.title')}</h3>
-        <div className="settings-grid">
-          <label className="field">
-            <span>{t('settings.ui.language')}</span>
-            <select value={language} onChange={(e) => setLanguage(e.target.value as Language)}>
-              <option value="en">{t('settings.ui.english')}</option>
-              <option value="vi">{t('settings.ui.vietnamese')}</option>
-            </select>
-            <p className="field-hint" style={{marginTop: 4, fontSize: '0.85em', color: 'var(--color-text-secondary)'}}>
-              {t('settings.ui.languageHint')}
-            </p>
-          </label>
-        </div>
-      </div>
-
-      <div className="surface-card" style={{marginBottom: 16}}>
-        <h3>{t('settings.tokenOverflow.title')}</h3>
-        <div className="settings-grid">
-          <label className="toggle-field">
-            <input
-              type="checkbox"
-              checked={overflowEnabled}
-              onChange={(e) => setOverflowEnabled(e.target.checked)}
-            />
-            <span>{t('settings.tokenOverflow.enableRawFile')}</span>
-          </label>
-          <label className="field">
-            <span>{t('settings.tokenOverflow.threshold')}</span>
-            <input
-              type="number"
-              value={threshold}
-              onChange={(e) => setThreshold(Number(e.target.value))}
-              min={1000}
-              step={500}
-            />
-          </label>
-        </div>
-
-      </div>
-
-      <div className="surface-card" style={{marginBottom: 16}}>
-        <h3>{t('settings.session.title')}</h3>
-        <div className="settings-grid">
-          <label className="toggle-field">
-            <input
-              type="checkbox"
-              checked={sessionEnabled}
-              onChange={(e) => setSessionEnabled(e.target.checked)}
-            />
-            <span>{t('settings.session.enable')}</span>
-          </label>
-          <label className="field">
-            <span>{t('settings.session.historyLimit')}</span>
-            <select value={historyLimit} onChange={(e) => setHistoryLimit(Number(e.target.value))}>
-              <option value={1}>1</option>
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-            </select>
-          </label>
-          <label className="toggle-field">
-            <input
-              type="checkbox"
-              checked={autoCompact}
-              onChange={(e) => setAutoCompact(e.target.checked)}
-            />
-            <span>{t('settings.session.autoCompact')}</span>
-          </label>
-          <label className="field">
-            <span>{t('settings.session.compactAfter')}</span>
-            <input
-              type="number"
-              value={compactAfterMessages}
-              onChange={(e) => setCompactAfterMessages(Number(e.target.value))}
-              min={10}
-              step={5}
-            />
-          </label>
-          <label className="field">
-            <span>{t('settings.session.keepRecent')}</span>
-            <input
-              type="number"
-              value={compactKeepRecent}
-              onChange={(e) => setCompactKeepRecent(Number(e.target.value))}
-              min={1}
-              max={20}
-            />
-          </label>
-          <label className="field">
-            <span>{t('settings.session.compactModel')}</span>
-            <input
-              value={compactModel}
-              onChange={(e) => setCompactModel(e.target.value)}
-            />
-          </label>
-          <label className="toggle-field">
-            <input
-              type="checkbox"
-              checked={requireExplicitId}
-              onChange={(e) => setRequireExplicitId(e.target.checked)}
-            />
-            <span>{t('settings.session.requireExplicitId')}</span>
-          </label>
-          <label className="toggle-field">
-            <input type="checkbox" checked={fileBackedEnabled} onChange={(e) => setFileBackedEnabled(e.target.checked)} />
-            <span>{t('settings.session.fileBacked')}</span>
-          </label>
-          <label className="toggle-field">
-            <input type="checkbox" checked={createOnOverflow} onChange={(e) => setCreateOnOverflow(e.target.checked)} />
-            <span>{t('settings.session.createOnOverflow')}</span>
-          </label>
-          <label className="field">
-            <span>{t('settings.session.fallbackMode')}</span>
-            <div>
-              <select value={fallbackMode} onChange={(e) => setFallbackMode(e.target.value)}>
-                <option value="file-backed">{t('settings.session.fileBackedOption')}</option>
-                <option value="stateless">{t('settings.session.statelessOption')}</option>
-                <option value="transient">{t('settings.session.transientOption')}</option>
-                <option value="shared-default">{t('settings.session.sharedDefaultOption')}</option>
+      <div className="form-container">
+        <div className="surface-card" style={{marginBottom: 16}}>
+          <h3>{t('settings.ui.title')}</h3>
+          <div className="settings-grid">
+            <label className="field">
+              <span>{t('settings.ui.language')}</span>
+              <select value={language} onChange={(e) => setLanguage(e.target.value as Language)}>
+                <option value="en">{t('settings.ui.english')}</option>
+                <option value="vi">{t('settings.ui.vietnamese')}</option>
               </select>
               <p className="field-hint" style={{marginTop: 4, fontSize: '0.85em', color: 'var(--color-text-secondary)'}}>
-                {fallbackMode === 'file-backed'
-                  ? t('settings.session.fileBackedHint')
-                  : fallbackMode === 'stateless'
-                    ? t('settings.session.statelessHint')
-                    : fallbackMode === 'transient'
-                      ? t('settings.session.transientHint')
-                      : t('settings.session.sharedDefaultHint')}
+                {t('settings.ui.languageHint')}
               </p>
-            </div>
-          </label>
+            </label>
+          </div>
         </div>
-      </div>
 
-      <div className="surface-card" style={{marginBottom: 16}}>
-        <h3>{t('settings.multiThread.title')}</h3>
-        <div className="settings-grid">
-          <label className="toggle-field">
-            <input type="checkbox" checked={mtEnabled} onChange={(e) => setMtEnabled(e.target.checked)} />
-            <span>{t('settings.multiThread.enable')}</span>
-          </label>
-          <label className="field">
-            <span>{t('settings.multiThread.globalMax')}</span>
-            <input type="number" value={globalMaxConcurrent} onChange={(e) => setGlobalMaxConcurrent(Number(e.target.value))} min={1} />
-          </label>
-          <label className="field">
-            <span>{t('settings.multiThread.providerMax')}</span>
-            <input type="number" value={providerMaxConcurrent} onChange={(e) => setProviderMaxConcurrent(Number(e.target.value))} min={1} />
-          </label>
-          <label className="field">
-            <span>{t('settings.multiThread.accountMax')}</span>
-            <input type="number" value={accountMaxConcurrent} onChange={(e) => setAccountMaxConcurrent(Number(e.target.value))} min={1} />
-          </label>
-          <label className="field">
-            <span>{t('settings.multiThread.queueTimeout')}</span>
-            <input type="number" value={queueTimeoutMs} onChange={(e) => setQueueTimeoutMs(Number(e.target.value))} min={5000} step={5000} />
-          </label>
-          <label className="field">
-            <span>{t('settings.multiThread.runTimeout')}</span>
-            <input type="number" value={runTimeoutMs} onChange={(e) => setRunTimeoutMs(Number(e.target.value))} min={10000} step={10000} />
-          </label>
+        <div className="surface-card" style={{marginBottom: 16}}>
+          <h3>{t('settings.tokenOverflow.title')}</h3>
+          <div className="settings-grid">
+            <label className="toggle-field">
+              <input
+                type="checkbox"
+                checked={overflowEnabled}
+                onChange={(e) => setOverflowEnabled(e.target.checked)}
+              />
+              <span>{t('settings.tokenOverflow.enableRawFile')}</span>
+            </label>
+            <label className="field">
+              <span>{t('settings.tokenOverflow.threshold')}</span>
+              <input
+                type="number"
+                value={threshold}
+                onChange={(e) => setThreshold(Number(e.target.value))}
+                min={1000}
+                step={500}
+              />
+            </label>
+          </div>
         </div>
-      </div>
 
-      <div className="surface-card" style={{marginBottom: 16}}>
-        <h3>{t('settings.egress.title')}</h3>
-        <div className="settings-grid">
-          <label className="toggle-field">
-            <input type="checkbox" checked={egressEnabled} onChange={(e) => setEgressEnabled(e.target.checked)} />
-            <span>{t('settings.egress.enable')}</span>
-          </label>
+        <div className="surface-card" style={{marginBottom: 16}}>
+          <h3>{t('settings.session.title')}</h3>
+          <div className="settings-grid">
+            <label className="toggle-field">
+              <input
+                type="checkbox"
+                checked={sessionEnabled}
+                onChange={(e) => setSessionEnabled(e.target.checked)}
+              />
+              <span>{t('settings.session.enable')}</span>
+            </label>
+            <label className="field">
+              <span>{t('settings.session.historyLimit')}</span>
+              <select value={historyLimit} onChange={(e) => setHistoryLimit(Number(e.target.value))}>
+                <option value={1}>1</option>
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </label>
+            <label className="toggle-field">
+              <input
+                type="checkbox"
+                checked={autoCompact}
+                onChange={(e) => setAutoCompact(e.target.checked)}
+              />
+              <span>{t('settings.session.autoCompact')}</span>
+            </label>
+            <label className="field">
+              <span>{t('settings.session.compactAfter')}</span>
+              <input
+                type="number"
+                value={compactAfterMessages}
+                onChange={(e) => setCompactAfterMessages(Number(e.target.value))}
+                min={10}
+                step={5}
+              />
+            </label>
+            <label className="field">
+              <span>{t('settings.session.keepRecent')}</span>
+              <input
+                type="number"
+                value={compactKeepRecent}
+                onChange={(e) => setCompactKeepRecent(Number(e.target.value))}
+                min={1}
+                max={20}
+              />
+            </label>
+            <label className="field">
+              <span>{t('settings.session.compactModel')}</span>
+              <input
+                value={compactModel}
+                onChange={(e) => setCompactModel(e.target.value)}
+              />
+            </label>
+            <label className="toggle-field">
+              <input
+                type="checkbox"
+                checked={requireExplicitId}
+                onChange={(e) => setRequireExplicitId(e.target.checked)}
+              />
+              <span>{t('settings.session.requireExplicitId')}</span>
+            </label>
+            <label className="toggle-field">
+              <input type="checkbox" checked={fileBackedEnabled} onChange={(e) => setFileBackedEnabled(e.target.checked)} />
+              <span>{t('settings.session.fileBacked')}</span>
+            </label>
+            <label className="toggle-field">
+              <input type="checkbox" checked={createOnOverflow} onChange={(e) => setCreateOnOverflow(e.target.checked)} />
+              <span>{t('settings.session.createOnOverflow')}</span>
+            </label>
+            <label className="field">
+              <span>{t('settings.session.fallbackMode')}</span>
+              <div>
+                <select value={fallbackMode} onChange={(e) => setFallbackMode(e.target.value)}>
+                  <option value="file-backed">{t('settings.session.fileBackedOption')}</option>
+                  <option value="stateless">{t('settings.session.statelessOption')}</option>
+                  <option value="transient">{t('settings.session.transientOption')}</option>
+                  <option value="shared-default">{t('settings.session.sharedDefaultOption')}</option>
+                </select>
+                <p className="field-hint" style={{marginTop: 4, fontSize: '0.85em', color: 'var(--color-text-secondary)'}}>
+                  {fallbackMode === 'file-backed'
+                    ? t('settings.session.fileBackedHint')
+                    : fallbackMode === 'stateless'
+                      ? t('settings.session.statelessHint')
+                      : fallbackMode === 'transient'
+                        ? t('settings.session.transientHint')
+                        : t('settings.session.sharedDefaultHint')}
+                </p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div className="surface-card" style={{marginBottom: 16}}>
+          <h3>{t('settings.multiThread.title')}</h3>
+          <div className="settings-grid">
+            <label className="toggle-field">
+              <input type="checkbox" checked={mtEnabled} onChange={(e) => setMtEnabled(e.target.checked)} />
+              <span>{t('settings.multiThread.enable')}</span>
+            </label>
+            <label className="field">
+              <span>{t('settings.multiThread.globalMax')}</span>
+              <input type="number" value={globalMaxConcurrent} onChange={(e) => setGlobalMaxConcurrent(Number(e.target.value))} min={1} />
+            </label>
+            <label className="field">
+              <span>{t('settings.multiThread.providerMax')}</span>
+              <input type="number" value={providerMaxConcurrent} onChange={(e) => setProviderMaxConcurrent(Number(e.target.value))} min={1} />
+            </label>
+            <label className="field">
+              <span>{t('settings.multiThread.accountMax')}</span>
+              <input type="number" value={accountMaxConcurrent} onChange={(e) => setAccountMaxConcurrent(Number(e.target.value))} min={1} />
+            </label>
+            <label className="field">
+              <span>{t('settings.multiThread.queueTimeout')}</span>
+              <input type="number" value={queueTimeoutMs} onChange={(e) => setQueueTimeoutMs(Number(e.target.value))} min={5000} step={5000} />
+            </label>
+            <label className="field">
+              <span>{t('settings.multiThread.runTimeout')}</span>
+              <input type="number" value={runTimeoutMs} onChange={(e) => setRunTimeoutMs(Number(e.target.value))} min={10000} step={10000} />
+            </label>
+          </div>
+        </div>
+
+        <div className="surface-card" style={{marginBottom: 16}}>
+          <h3>{t('settings.egress.title')}</h3>
+          <div className="settings-grid">
+            <label className="toggle-field">
+              <input type="checkbox" checked={egressEnabled} onChange={(e) => setEgressEnabled(e.target.checked)} />
+              <span>{t('settings.egress.enable')}</span>
+            </label>
+            {egressEnabled && (
+              <>
+                <label className="toggle-field">
+                  <input type="checkbox" checked={egressStrict} onChange={(e) => setEgressStrict(e.target.checked)} />
+                  <span>{t('settings.egress.strict')}</span>
+                </label>
+                <label className="toggle-field">
+                  <input type="checkbox" checked={egressFallback} onChange={(e) => setEgressFallback(e.target.checked)} />
+                  <span>{t('settings.egress.fallback')}</span>
+                </label>
+                <label className="toggle-field">
+                  <input type="checkbox" checked={egressVerify} onChange={(e) => setEgressVerify(e.target.checked)} />
+                  <span>{t('settings.egress.verify')}</span>
+                </label>
+              </>
+            )}
+          </div>
+          <div className="detail-grid" style={{marginTop: 12}}>
+            <dt>{t('settings.egress.directIp')}</dt>
+            <dd>{directIp || t('settings.egress.checking')} <span className="muted">({directIpSource})</span></dd>
+          </div>
           {egressEnabled && (
-            <>
-              <label className="toggle-field">
-                <input type="checkbox" checked={egressStrict} onChange={(e) => setEgressStrict(e.target.checked)} />
-                <span>{t('settings.egress.strict')}</span>
-              </label>
-              <label className="toggle-field">
-                <input type="checkbox" checked={egressFallback} onChange={(e) => setEgressFallback(e.target.checked)} />
-                <span>{t('settings.egress.fallback')}</span>
-              </label>
-              <label className="toggle-field">
-                <input type="checkbox" checked={egressVerify} onChange={(e) => setEgressVerify(e.target.checked)} />
-                <span>{t('settings.egress.verify')}</span>
-              </label>
-            </>
+            <p style={{marginTop: 8, fontSize: '0.85em', padding: '8px 12px', background: 'var(--color-warning-bg)', borderRadius: 4}}>
+              {t('settings.egress.warning')}
+            </p>
           )}
         </div>
-        <div className="detail-grid" style={{marginTop: 12}}>
-          <dt>{t('settings.egress.directIp')}</dt>
-          <dd>{directIp || t('settings.egress.checking')} <span className="muted">({directIpSource})</span></dd>
-        </div>
-        {egressEnabled && (
-          <p style={{marginTop: 8, fontSize: '0.85em', padding: '8px 12px', background: 'var(--color-warning-bg)', borderRadius: 4}}>
-            {t('settings.egress.warning')}
-          </p>
-        )}
-      </div>
 
-      <div className="action-row">
-        <button onClick={saveSettings} disabled={saving}>
-          {saving ? t('common.saving') : t('settings.save')}
-        </button>
+        <div className="btn-group">
+          <button onClick={saveSettings} disabled={saving}>
+            {saving ? t('common.saving') : t('settings.save')}
+          </button>
+        </div>
+        {message ? <p className="muted" style={{ marginTop: 12 }}>{message}</p> : null}
       </div>
-      {message ? <p className="muted">{message}</p> : null}
     </section>
   );
 }

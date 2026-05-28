@@ -17,10 +17,11 @@ export default function Providers() {
   const [activeTab, setActiveTab] = useState<'config'|'oauth'>('config');
   const [tokenValue, setTokenValue] = useState('');
   const [cookieValue, setCookieValue] = useState('');
-  const [validationMsg, setValidationMsg] = useState<string | null>(null);
+  const [validation, setValidation] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [oauthPolling, setOauthPolling] = useState(false);
   const [oauthConfig, setOauthConfig] = useState<any>(null);
   const [providerStatus, setProviderStatus] = useState<Record<string, ProviderStatus>>({});
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => { loadConfig(); }, []);
 
@@ -55,12 +56,19 @@ export default function Providers() {
 
   const configured = providers.filter(p => p.credentials && Object.keys(p.credentials).length > 0);
 
+  const [rawJsonInput, setRawJsonInput] = useState('');
+  const [emailValue, setEmailValue] = useState('');
+
   function openAdd() {
-    setSelected(null);
+    const bp = builtinProviders[0];
+    setSelected(bp);
     setTokenValue('');
     setCookieValue('');
+    setRawJsonInput('');
+    setEmailValue('');
     setActiveTab('config');
-    setValidationMsg(null);
+    setValidation(null);
+    setIsEditing(false);
     setShowAdd(true);
   }
 
@@ -69,8 +77,11 @@ export default function Providers() {
     setSelected(built);
     setTokenValue(p.credentials?.token || '');
     setCookieValue((p.credentials?.cookies || p.credentials?.cookie || ''));
+    setRawJsonInput('');
+    setEmailValue(p.name || '');
     setActiveTab('config');
-    setValidationMsg(null);
+    setValidation(null);
+    setIsEditing(true);
     setShowAdd(true);
   }
 
@@ -78,12 +89,21 @@ export default function Providers() {
     setShowAdd(false);
   }
 
-  function pickBuiltin(p: any) {
-    setSelected(p);
-    setActiveTab('config');
-    setTokenValue('');
-    setCookieValue('');
-    setValidationMsg(null);
+  function handleJsonChange(val: string) {
+    setRawJsonInput(val);
+    if (!val.trim()) return;
+    try {
+      const parsed = JSON.parse(val.trim());
+      if (parsed && parsed.token) {
+        setTokenValue(parsed.token);
+        setEmailValue(parsed.email || parsed.name || 'Qwen Account');
+        setValidation(null);
+      } else {
+        setValidation({ text: 'JSON hợp lệ nhưng không tìm thấy trường "token".', type: 'error' });
+      }
+    } catch {
+      // Đang dán JSON chưa hoàn thành, bỏ qua báo lỗi tạm thời
+    }
   }
 
   async function loadOauthConfig(providerId: string) {
@@ -104,16 +124,15 @@ export default function Providers() {
   function openLoginAndSwitch() {
     if (!selected) return;
     window.open(selected.loginUrl || 'https://chat.qwen.ai', '_blank');
-    // Open login to retrieve cookie; keep user in Config so they can paste cookie
     setActiveTab('config');
   }
 
   async function startOAuth() {
     if (!selected) return;
-    setValidationMsg(null);
+    setValidation(null);
     setOauthPolling(true);
     try {
-      setValidationMsg(t('providers.oauthOpening'));
+      setValidation({ text: t('providers.oauthOpening'), type: 'info' });
       const resp = await fetch('/api/provider/oauth/capture', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -121,7 +140,7 @@ export default function Providers() {
       });
       const data = await resp.json();
       if (!resp.ok || !data.success) {
-        setValidationMsg(data.error || t('providers.oauthFailed'));
+        setValidation({ text: data.error || t('providers.oauthFailed'), type: 'error' });
         return;
       }
 
@@ -129,10 +148,10 @@ export default function Providers() {
       if (creds.token) setTokenValue(creds.token);
       if (creds.cookies) setCookieValue(creds.cookies);
       await loadConfig();
-      setValidationMsg(t('providers.oauthCaptured'));
+      setValidation({ text: t('providers.oauthCaptured'), type: 'success' });
     } catch (err) {
       console.error('startOAuth failed', err);
-      setValidationMsg(err instanceof Error ? err.message : t('providers.oauthStartFailed'));
+      setValidation({ text: err instanceof Error ? err.message : t('providers.oauthStartFailed'), type: 'error' });
     } finally {
       setOauthPolling(false);
     }
@@ -140,21 +159,29 @@ export default function Providers() {
 
   async function validate() {
     if (!selected) return;
-    setValidationMsg(t('providers.checking'));
-    const creds: any = {};
-    const tokenKey = selected.id === 'qwen-ai' ? 'token' : 'ticket';
-    const cookieKey = selected.id === 'qwen-ai' ? 'cookies' : 'cookie';
+    setValidation({ text: t('providers.checking'), type: 'info' });
+    
+    let token = tokenValue;
+    if (rawJsonInput && !token) {
+      try {
+        const parsed = JSON.parse(rawJsonInput.trim());
+        if (parsed.token) {
+          token = parsed.token;
+          setTokenValue(token);
+          setEmailValue(parsed.email || parsed.name || 'Qwen Account');
+        }
+      } catch (err) {
+        setValidation({ text: 'JSON không hợp lệ. Vui lòng kiểm tra lại.', type: 'error' });
+        return;
+      }
+    }
 
-    if (tokenValue && tokenValue.trim().length > 0) {
-      creds[tokenKey] = tokenValue.trim();
-    }
-    if (cookieValue && cookieValue.trim().length > 0) {
-      creds[cookieKey] = cookieValue.trim();
-    }
-    if (Object.keys(creds).length === 0) {
-      setValidationMsg(activeTab === 'oauth' ? t('providers.startFirst') : t('providers.provideCredential'));
+    if (!token || token.trim().length === 0) {
+      setValidation({ text: 'Vui lòng dán JSON chứa token hợp lệ.', type: 'error' });
       return;
     }
+
+    const creds = { token: token.trim() };
 
     try {
       const resp = await fetch('/api/provider/validate', {
@@ -162,153 +189,164 @@ export default function Providers() {
         body: JSON.stringify({ providerId: selected.id, credentials: creds }),
       });
       const data = await resp.json();
-      if (data && data.ok) setValidationMsg(t('providers.valid'));
-      else setValidationMsg(t('providers.invalid'));
+      if (data && data.ok) setValidation({ text: t('providers.valid'), type: 'success' });
+      else setValidation({ text: t('providers.invalid'), type: 'error' });
     } catch (err) {
       console.error(err);
-      setValidationMsg(t('providers.validationFailed'));
+      setValidation({ text: t('providers.validationFailed'), type: 'error' });
     }
   }
 
   async function save() {
     if (!selected) return;
-    try {
-      const tokenKey = selected.id === 'qwen-ai' ? 'token' : 'ticket';
-      const cookieKey = selected.id === 'qwen-ai' ? 'cookies' : 'cookie';
+    let token = tokenValue;
+    let email = emailValue;
 
-      const credentials: Record<string, string> = {};
-      if (tokenValue && tokenValue.trim().length > 0) {
-        credentials[tokenKey] = tokenValue.trim();
-      }
-      if (cookieValue && cookieValue.trim().length > 0) {
-        credentials[cookieKey] = cookieValue.trim();
-      }
-
-      if (Object.keys(credentials).length > 0) {
-        await fetch('/api/provider/token', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({providerId: selected.id, credentials}),
-        });
-      } else {
-        setValidationMsg(activeTab === 'oauth' ? t('providers.startFirst') : t('providers.nothingToSave'));
+    if (rawJsonInput) {
+      try {
+        const parsed = JSON.parse(rawJsonInput.trim());
+        if (parsed.token) {
+          token = parsed.token;
+          email = parsed.email || parsed.name || 'Qwen Account';
+        }
+      } catch {
+        setValidation({ text: 'JSON không hợp lệ. Vui lòng kiểm tra lại.', type: 'error' });
         return;
       }
-      await loadConfig();
-      setShowAdd(false);
+    }
+
+    if (!token || token.trim().length === 0) {
+      setValidation({ text: 'Vui lòng dán JSON chứa token hợp lệ.', type: 'error' });
+      return;
+    }
+
+    try {
+      const credentials = { token: token.trim() };
+      const res = await fetch('/api/provider/token', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          providerId: selected.id,
+          credentials,
+          name: email
+        }),
+      });
+      if (res.ok) {
+        await loadConfig();
+        setShowAdd(false);
+      } else {
+        setValidation({ text: 'Lưu cấu hình thất bại.', type: 'error' });
+      }
     } catch (err) {
       console.error('save failed', err);
+      setValidation({ text: 'Lỗi kết nối khi lưu cấu hình.', type: 'error' });
     }
   }
 
   return (
-    <section aria-labelledby="providers-title" className={`providers-section ${showAdd ? 'modal-open' : ''}`}>
-      <h2 id="providers-title">{t('nav.providers')}</h2>
-
-      <div style={{display:'flex', justifyContent:'center', gap:16, marginBottom:16}}>
-        <button className="add-button" onClick={openAdd}>{t('providers.add')}</button>
+    <div className="page-panel">
+      <div className="page-heading">
+        <h2 id="providers-title">{t('nav.providers')}</h2>
+        <button className="btn" onClick={openAdd}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          {t('providers.add')}
+        </button>
       </div>
 
-      <div className={`providers-wrapper ${showAdd ? 'modal-open' : ''}`}>
-        {loading ? <div>{t('common.loading')}</div> : (
-          configured.length === 0 ? <div className="muted">{t('providers.empty')}</div> : (
-            configured.map(p => (
-              <button key={p.id} className="provider-card provider-card-button" onClick={() => openEditorForProvider(p)}>
-                <div className="provider-card-head">
-                  <div className="provider-name">{p.name || p.id}</div>
-                  <span className={`provider-status-dot status-${providerStatus[p.id] || 'warn'}`} />
-                </div>
-                <div className="provider-credentials">{p.credentials ? Object.keys(p.credentials).map(k => `${k}: ${String(p.credentials![k]).slice(0,6)}...`).join(' • ') : ''}</div>
-              </button>
-            ))
-          )
+      <div className="providers-wrapper">
+        {loading ? (
+          <div className="muted">{t('common.loading')}</div>
+        ) : configured.length === 0 ? (
+          <div className="muted">{t('providers.empty')}</div>
+        ) : (
+          configured.map(p => (
+            <div key={p.id} className="surface-card provider-card" onClick={() => openEditorForProvider(p)}>
+              <div className="provider-card-head">
+                <h3 className="provider-name">{p.name || p.id}</h3>
+                <span className={`provider-status-dot status-${providerStatus[p.id] || 'warn'}`} />
+              </div>
+              <p className="provider-credentials">
+                {p.credentials ? Object.keys(p.credentials).map(k => `${k}: ${String(p.credentials![k]).slice(0,8)}...`).join(' • ') : ''}
+              </p>
+            </div>
+          ))
         )}
       </div>
 
       {showAdd && (
-        <div className="modal-overlay" role="dialog" aria-modal="true">
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
           <div className="modal-panel">
-            <button aria-label={t('common.close')} className="modal-close-btn" onClick={closeAdd}>×</button>
-            <div style={{display:'flex', flexDirection:'column', gap:16}}>
-              <div className="available-list">
-                <h3>{t('providers.available')}</h3>
-                <div className="available-items">
-                  {builtinProviders.map(bp => (
-                    <button
-                      key={bp.id}
-                      className={selected && selected.id === bp.id ? 'provider-select-btn selected' : 'provider-select-btn'}
-                      onClick={() => pickBuiltin(bp)}
-                    >
-                      {bp.name}
-                    </button>
-                  ))}
+            <div className="surface-card-head" style={{ marginBottom: 'var(--space-4)' }}>
+              <h3 id="modal-title" style={{ fontSize: '1.25rem' }}>
+                {isEditing ? t('providers.editAccount') : t('providers.add')}
+              </h3>
+              <button aria-label={t('common.close')} className="modal-close-btn" onClick={closeAdd}>×</button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              {isEditing ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                  <label className="field">
+                    <span>{t('providers.displayName')}</span>
+                    <input
+                      type="text"
+                      value={emailValue}
+                      onChange={(e) => setEmailValue(e.target.value)}
+                      placeholder="lole7176@gmail.com"
+                    />
+                  </label>
+                  <label className="field">
+                    <span>{t('providers.sessionTokenJson')}</span>
+                    <textarea
+                      value={rawJsonInput}
+                      onChange={(e) => handleJsonChange(e.target.value)}
+                      style={{ height: '120px', resize: 'vertical', fontFamily: 'monospace', fontSize: '0.85rem' }}
+                      placeholder={t('providers.sessionTokenPlaceholder')}
+                    />
+                  </label>
                 </div>
-
-                {selected && (
-                  <div className="provider-action-row">
-                    <button className={activeTab === 'config' ? 'provider-action-btn active' : 'provider-action-btn'} onClick={() => setActiveTab('config')}>{t('providers.config')}</button>
-                    <button className={activeTab === 'oauth' ? 'provider-action-btn active' : 'provider-action-btn'} onClick={() => setActiveTab('oauth')}>OAuth</button>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                  <div>
+                    <strong style={{ display: 'block', marginBottom: 'var(--space-2)' }}>{t('providers.step1')}</strong>
+                    <button className="btn secondary" onClick={() => window.open('https://chat.qwen.ai/auth', '_blank')}>
+                      {t('providers.goToLogin')}
+                    </button>
                   </div>
-                )}
-              </div>
 
-              <div className="provider-detail-center">
-                {!selected ? (
-                  <div className="muted">{t('providers.select')}</div>
-                ) : (
-                  <div style={{textAlign:'left'}}>
-                    <h3 style={{textAlign:'center'}}>{selected.name}</h3>
-
-                    {activeTab === 'config' ? (
-                      <div>
-                        <div className="input-area">
-                          <label>{t('providers.token')}</label>
-                          <input value={tokenValue} onChange={(e) => setTokenValue(e.target.value)} style={{width:'100%'}} />
-                          <p className="muted">{t('providers.tokenHint')}</p>
-                        </div>
-
-                        <div className="input-area" style={{marginTop:8}}>
-                          <label>{t('providers.cookie')}</label>
-                          <textarea value={cookieValue} onChange={(e)=>setCookieValue(e.target.value)} style={{width:'100%',height:120}} />
-                        </div>
-
-                        <div style={{marginTop:8}}>
-                          <button onClick={openLoginAndSwitch} className="nav-link">{t('providers.openLogin')}</button>
-                          <button onClick={startOAuth} className="nav-link" style={{marginLeft:8}}>{t('providers.startOAuth')}</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{textAlign:'left'}}>
-                        <p className="muted">{t('providers.oauthHint')}</p>
-                        <div style={{display:'flex', justifyContent:'center', gap:8, marginTop:12}}>
-                          <button onClick={startOAuth} disabled={oauthPolling} className="add-button">
-                            {oauthPolling ? t('providers.waitLogin') : t('providers.startOAuth')}
-                          </button>
-                        </div>
-                        {(tokenValue || cookieValue) && (
-                          <div style={{marginTop:12}}>
-                            {tokenValue && <div className="provider-credentials">token: {tokenValue.slice(0, 12)}...</div>}
-                            {cookieValue && <div className="provider-credentials">cookies: {cookieValue.slice(0, 12)}...</div>}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {validationMsg && <div style={{marginTop:8}} className="muted">{validationMsg}</div>}
+                  <div>
+                    <strong style={{ display: 'block', marginBottom: 'var(--space-2)' }}>{t('providers.step2')}</strong>
+                    <button className="btn secondary" onClick={() => window.open('https://chat.qwen.ai/api/v1/auths/', '_blank')}>
+                      {t('providers.goToApi')}
+                    </button>
                   </div>
-                )}
-              </div>
 
-              {selected && (
-                <div className="modal-actions" style={{display:'flex', gap:8, marginTop:12, justifyContent:'flex-end'}}>
-                  <button onClick={validate} className="nav-link">{t('providers.validate')}</button>
-                  <button onClick={save} className="add-button">{t('providers.save')}</button>
+                  <div className="field">
+                    <strong style={{ display: 'block', marginBottom: 'var(--space-2)' }}>{t('providers.step3')}</strong>
+                    <textarea
+                      value={rawJsonInput}
+                      onChange={(e) => handleJsonChange(e.target.value)}
+                      style={{ height: '120px', resize: 'vertical', fontFamily: 'monospace', fontSize: '0.85rem' }}
+                      placeholder={t('providers.jsonPlaceholder')}
+                    />
+                  </div>
                 </div>
               )}
+
+              {validation && (
+                <div className={`validation-box status-${validation.type}`}>
+                  <span>{validation.text}</span>
+                </div>
+              )}
+
+              <div className="btn-group" style={{ justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
+                <button className="btn secondary" onClick={validate}>{t('providers.validate')}</button>
+                <button className="btn" onClick={save}>{t('providers.save')}</button>
+              </div>
             </div>
           </div>
         </div>
       )}
-    </section>
+    </div>
   );
 }

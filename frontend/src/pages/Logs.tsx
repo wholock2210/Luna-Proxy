@@ -229,8 +229,8 @@ export default function Logs() {
       ) : null}
 
       {selectedLog && selectedMeta ? (
-        <div className="detail-overlay" role="dialog" aria-modal="true" aria-labelledby="log-detail-title">
-          <aside className="detail-panel">
+        <div className="detail-overlay" role="dialog" aria-modal="true" aria-labelledby="log-detail-title" onClick={() => setSelectedLog(null)}>
+          <aside className="detail-panel" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close-btn" aria-label={t('common.close')} onClick={() => setSelectedLog(null)}>×</button>
             <div className="detail-heading">
               <p className="eyebrow">{t('logs.detail')}</p>

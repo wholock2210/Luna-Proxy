@@ -8,7 +8,7 @@ const dictionaries: Record<Language, Dictionary> = {
   en: {
     'app.title': 'Luna Proxy Manager',
     'nav.dashboard': 'Dashboard',
-    'nav.providers': 'Providers',
+    'nav.providers': 'Accounts',
     'nav.proxy': 'Proxy',
     'nav.models': 'Models',
     'nav.sessions': 'Sessions',
@@ -133,7 +133,7 @@ const dictionaries: Record<Language, Dictionary> = {
     'dashboard.ready': 'Ready',
     'dashboard.down': 'Down',
     'dashboard.checking': 'Checking',
-    'dashboard.configuredProviders': 'Configured providers',
+    'dashboard.configuredProviders': 'Account',
     'dashboard.activeRuns': 'Active runs',
     'dashboard.schedulerState': 'Live scheduler state.',
     'dashboard.queuedRuns': 'Queued runs',
@@ -173,7 +173,7 @@ const dictionaries: Record<Language, Dictionary> = {
     'models.maxGeneration': 'Maximum generation length',
     'models.maxThinking': 'Max thinking generation length',
     'models.modality': 'Modality',
-    'providers.add': 'Add Provider',
+    'providers.add': 'Add Account',
     'providers.empty': 'No providers yet',
     'providers.available': 'Available',
     'providers.config': 'Config',
@@ -313,11 +313,38 @@ const dictionaries: Record<Language, Dictionary> = {
     'settings.egress.warning': 'IP isolation requires workers running through VPN/proxy/network namespaces. If strict mode is enabled, Proxy-Luna will not call providers directly when no verified worker is available.',
     'settings.save': 'Save Settings',
     'settings.saved': 'Settings saved',
+    'providers.step1': 'Step 1: Login Qwen Web (skip if already logged in)',
+    'providers.step2': 'Step 2: Access API Session',
+    'providers.step3': 'Step 3: Copy the entire JSON content you see and paste it below',
+    'providers.goToLogin': 'Go to login page',
+    'providers.goToApi': 'Access API',
+    'providers.jsonPlaceholder': 'Paste the raw JSON auth session content here...',
+    'dashboard.status': 'Status',
+    'dashboard.currentConcurrent': 'Current concurrent runs',
+    'dashboard.currentConcurrentHint': 'Active capacity in use',
+    'dashboard.availableAccountsHint': 'Configured and verified accounts',
+    'dashboard.queuedHint': 'Runs waiting in queue',
+    'dashboard.errorsHint': 'Limits or validation errors',
+    'dashboard.requestsHint': 'Total chat completion calls',
+    'dashboard.activeHint': 'Total active run records',
+    'dashboard.locksStatus': 'Locks Status',
+    'proxy.authHeaderHint': 'or',
+    'proxy.online': 'Online',
+    'proxy.offline': 'Offline',
+    'proxy.copied': 'API key copied to clipboard',
+    'proxy.copyFailed': 'Failed to copy API key',
+    'proxy.generateKey': 'Generate random key',
+    'proxy.generateKeySuccess': 'API key generated',
+    'common.copy': 'Copy',
+    'providers.editAccount': 'Edit Account',
+    'providers.displayName': 'Display Name',
+    'providers.sessionTokenJson': 'Session Token JSON',
+    'providers.sessionTokenPlaceholder': 'Paste new JSON auth session here to update (leave blank to keep current)...',
   },
   vi: {
     'app.title': 'Trình quản lý Luna Proxy',
     'nav.dashboard': 'Tổng quan',
-    'nav.providers': 'Nhà cung cấp',
+    'nav.providers': 'Tài khoản',
     'nav.proxy': 'Proxy',
     'nav.models': 'Mô hình',
     'nav.sessions': 'Phiên',
@@ -355,8 +382,8 @@ const dictionaries: Record<Language, Dictionary> = {
     'label.level': 'Mức',
     'label.path': 'Đường dẫn',
     'label.status': 'Trạng thái',
-    'label.provider': 'Nhà cung cấp',
-    'label.account': 'Tài khoản',
+    'label.provider': 'Tài khoản',
+    'label.account': 'Sub-Account',
     'label.model': 'Mô hình',
     'label.session': 'Phiên',
     'label.worker': 'Worker',
@@ -442,7 +469,7 @@ const dictionaries: Record<Language, Dictionary> = {
     'dashboard.ready': 'Sẵn sàng',
     'dashboard.down': 'Ngừng',
     'dashboard.checking': 'Đang kiểm tra',
-    'dashboard.configuredProviders': 'Nhà cung cấp đã cấu hình',
+    'dashboard.configuredProviders': 'Tài khoản',
     'dashboard.activeRuns': 'Lượt chạy đang hoạt động',
     'dashboard.schedulerState': 'Trạng thái bộ lập lịch trực tiếp.',
     'dashboard.queuedRuns': 'Lượt chạy đang chờ',
@@ -482,11 +509,11 @@ const dictionaries: Record<Language, Dictionary> = {
     'models.maxGeneration': 'Độ dài sinh tối đa',
     'models.maxThinking': 'Độ dài suy luận tối đa',
     'models.modality': 'Loại dữ liệu',
-    'providers.add': 'Thêm nhà cung cấp',
-    'providers.empty': 'Chưa có nhà cung cấp',
+    'providers.add': 'Thêm tài khoản',
+    'providers.empty': 'Chưa có tài khoản',
     'providers.available': 'Khả dụng',
     'providers.config': 'Cấu hình',
-    'providers.select': 'Chọn nhà cung cấp để cấu hình',
+    'providers.select': 'Chọn dịch vụ để cấu hình',
     'providers.token': 'Token (dán vào đây)',
     'providers.tokenHint': 'Dán token nếu có. Hoặc dán cookie bên dưới sau khi đăng nhập.',
     'providers.cookie': 'Cookie / Session (dán chuỗi cookie thô)',
@@ -495,7 +522,7 @@ const dictionaries: Record<Language, Dictionary> = {
     'providers.oauthHint': 'Mở cửa sổ đăng nhập Qwen AI international. Sau khi đăng nhập, Proxy-Luna tự bắt web token từ Local Storage và xác minh.',
     'providers.waitLogin': 'Đang chờ đăng nhập...',
     'providers.validate': 'Xác minh',
-    'providers.save': 'Lưu nhà cung cấp',
+    'providers.save': 'Lưu tài khoản',
     'providers.oauthOpening': 'Đang mở cửa sổ đăng nhập Qwen AI. Hãy hoàn tất đăng nhập trong Chromium...',
     'providers.oauthFailed': 'Bắt OAuth thất bại',
     'providers.oauthCaptured': 'Đã bắt và xác minh thông tin OAuth',
@@ -622,6 +649,33 @@ const dictionaries: Record<Language, Dictionary> = {
     'settings.egress.warning': 'Cô lập IP yêu cầu worker chạy qua VPN/proxy/network namespace. Nếu bật chế độ nghiêm ngặt, Proxy-Luna sẽ không gọi trực tiếp nhà cung cấp khi không có worker đã xác minh.',
     'settings.save': 'Lưu cài đặt',
     'settings.saved': 'Đã lưu cài đặt',
+    'providers.step1': 'Bước 1: Đăng nhập Qwen Web (bỏ qua nếu đã đăng nhập)',
+    'providers.step2': 'Bước 2: Truy cập API Session',
+    'providers.step3': 'Bước 3: Sao chép toàn bộ nội dung JSON bạn nhìn thấy và dán vào ô dưới đây',
+    'providers.goToLogin': 'Đến trang đăng nhập',
+    'providers.goToApi': 'Truy cập API',
+    'providers.jsonPlaceholder': 'Dán toàn bộ nội dung JSON auth session tại đây...',
+    'dashboard.status': 'Trạng thái',
+    'dashboard.currentConcurrent': 'Đồng thời hiện tại',
+    'dashboard.currentConcurrentHint': 'Dung lượng đang sử dụng',
+    'dashboard.availableAccountsHint': 'Tài khoản khả dụng',
+    'dashboard.queuedHint': 'Yêu cầu xếp hàng',
+    'dashboard.errorsHint': 'Giới hạn / Mất hiệu lực',
+    'dashboard.requestsHint': 'Tổng số lượt chat',
+    'dashboard.activeHint': 'Tác vụ đang chạy',
+    'dashboard.locksStatus': 'Trạng thái Khóa (Locks)',
+    'proxy.authHeaderHint': 'hoặc',
+    'proxy.online': 'Hoạt động',
+    'proxy.offline': 'Mất kết nối',
+    'proxy.copied': 'Đã sao chép API key vào bộ nhớ tạm',
+    'proxy.copyFailed': 'Không thể sao chép API key',
+    'proxy.generateKey': 'Tạo key ngẫu nhiên',
+    'proxy.generateKeySuccess': 'Đã tạo ngẫu nhiên API key',
+    'common.copy': 'Sao chép',
+    'providers.editAccount': 'Chỉnh sửa tài khoản',
+    'providers.displayName': 'Tên hiển thị',
+    'providers.sessionTokenJson': 'Session Token JSON',
+    'providers.sessionTokenPlaceholder': 'Dán JSON auth session mới tại đây để cập nhật (để trống để giữ nguyên)...',
   },
 };
 
@@ -646,7 +700,9 @@ export function I18nProvider({children}: {children: React.ReactNode}) {
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
         if (!cancelled && data?.settings?.ui?.language) {
-          setLanguageState(normalizeLanguage(data.settings.ui.language));
+          const backendLang = normalizeLanguage(data.settings.ui.language);
+          setLanguageState(backendLang);
+          window.localStorage.setItem('luna-ui-language', backendLang);
         }
       })
       .catch(() => {});
@@ -660,6 +716,17 @@ export function I18nProvider({children}: {children: React.ReactNode}) {
     setLanguage: (nextLanguage) => {
       window.localStorage.setItem('luna-ui-language', nextLanguage);
       setLanguageState(nextLanguage);
+      fetch('/api/config', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          settings: {
+            ui: {
+              language: nextLanguage
+            }
+          }
+        })
+      }).catch(err => console.error('Failed to sync language to backend:', err));
     },
     t: (key, values) => {
       const template = dictionaries[language][key] || dictionaries.en[key] || key;

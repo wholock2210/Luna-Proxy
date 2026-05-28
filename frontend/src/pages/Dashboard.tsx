@@ -37,6 +37,16 @@ function parseLog(log: LogItem): Record<string, any> {
   }
 }
 
+// Icons for Dashboard Metrics
+const Icons = {
+  providers: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>,
+  activity: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>,
+  queue: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>,
+  errors: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>,
+  requests: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>,
+  runs: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+};
+
 export default function Dashboard() {
   const {t} = useI18n();
   const [config, setConfig] = useState<ConfigData | null>(null);
@@ -108,59 +118,70 @@ export default function Dashboard() {
   }, [config, logStats, runtime]);
 
   return (
-    <section aria-labelledby="dashboard-title" className="page-panel dashboard-panel">
+    <div className="page-panel dashboard-panel">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">{t('dashboard.eyebrow')}</p>
           <h2 id="dashboard-title">{t('dashboard.title')}</h2>
-          <p className="muted">{t('dashboard.autoUpdate')}</p>
+          <p className="muted">{t('dashboard.autoUpdate')} - {t('dashboard.status')}: {health === 'online' ? t('proxy.online') : health === 'offline' ? t('proxy.offline') : t('dashboard.checking')}</p>
         </div>
         <span className={`status-pill status-${health === 'online' ? 'alive' : health === 'offline' ? 'dead' : 'warn'}`}>
-          {health}
+          {health === 'online' ? t('proxy.online') : health === 'offline' ? t('proxy.offline') : t('dashboard.checking')}
         </span>
       </div>
 
       <div className="metric-grid">
         <article className="metric-card">
-          <span className={`status-pill status-${health === 'online' ? 'alive' : health === 'offline' ? 'dead' : 'warn'}`}>
-            {health}
-          </span>
-          <h3>{t('dashboard.proxyHealth')}</h3>
-          <p className="metric-value">{health === 'online' ? t('dashboard.ready') : health === 'offline' ? t('dashboard.down') : t('dashboard.checking')}</p>
-        </article>
-        <article className="metric-card">
+          <div className="metric-icon">{Icons.providers}</div>
           <h3>{t('dashboard.configuredProviders')}</h3>
           <p className="metric-value">{stats.providers}</p>
+          <p className="muted">{t('dashboard.availableAccountsHint')}</p>
         </article>
+        
         <article className="metric-card">
-          <h3>{t('dashboard.activeRuns')}</h3>
-          <p className="metric-value">{stats.activeRuns}</p>
-          <p className="muted">{t('dashboard.schedulerState')}</p>
-        </article>
-        <article className="metric-card">
-          <h3>{t('dashboard.queuedRuns')}</h3>
-          <p className="metric-value">{stats.queued}</p>
-          <p className="muted">{t('dashboard.waitingCapacity')}</p>
-        </article>
-        <article className="metric-card">
+          <div className="metric-icon" style={{color: 'var(--color-info)'}}>{Icons.activity}</div>
           <h3>{t('dashboard.capacityInUse')}</h3>
           <p className="metric-value">{stats.activeCapacity}</p>
+          <p className="muted">{t('dashboard.currentConcurrentHint')}</p>
         </article>
+
         <article className="metric-card">
-          <h3>{t('dashboard.recentRequests')}</h3>
-          <p className="metric-value">{stats.requests}</p>
+          <div className="metric-icon" style={{color: 'var(--color-warning)'}}>{Icons.queue}</div>
+          <h3>{t('dashboard.queuedRuns')}</h3>
+          <p className="metric-value">{stats.queued}</p>
+          <p className="muted">{t('dashboard.queuedHint')}</p>
         </article>
+
         <article className="metric-card">
+          <div className="metric-icon" style={{color: 'var(--color-danger)'}}>{Icons.errors}</div>
           <h3>{t('dashboard.recentErrors')}</h3>
           <p className="metric-value">{stats.errors}</p>
+          <p className="muted">{t('dashboard.errorsHint')}</p>
+        </article>
+
+        <article className="metric-card">
+          <div className="metric-icon" style={{color: 'var(--color-success)'}}>{Icons.requests}</div>
+          <h3>{t('dashboard.recentRequests')}</h3>
+          <p className="metric-value">{stats.requests}</p>
+          <p className="muted">{t('dashboard.requestsHint')}</p>
+        </article>
+
+        <article className="metric-card">
+          <div className="metric-icon" style={{color: 'var(--color-accent)'}}>{Icons.runs}</div>
+          <h3>{t('dashboard.activeRuns')}</h3>
+          <p className="metric-value">{stats.activeRuns}</p>
+          <p className="muted">{t('dashboard.activeHint')}</p>
         </article>
       </div>
 
-      <section className="surface-card" aria-labelledby="runtime-title" style={{marginBottom: 16}}>
+      <section className="surface-card">
         <div className="surface-card-head">
-          <h3 id="runtime-title">{t('dashboard.runtimeScheduler')}</h3>
+          <h3 style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+            <span style={{width: 4, height: 20, background: 'var(--color-accent)', borderRadius: 2, display: 'inline-block'}}></span>
+            {t('dashboard.runtimeScheduler')}
+          </h3>
           {lastUpdated ? <span className="muted">{t('common.updated')} {new Date(lastUpdated).toLocaleTimeString()}</span> : null}
         </div>
+        
         {runtime?.activeRuns?.length ? (
           <div className="table-wrap">
             <table className="data-table">
@@ -178,7 +199,7 @@ export default function Dashboard() {
               <tbody>
                 {runtime.activeRuns.map((run) => (
                   <tr key={run.id}>
-                    <td style={{fontFamily: 'monospace', fontSize: '0.85em'}}>{run.id.slice(0, 8)}</td>
+                    <td style={{fontFamily: 'monospace', fontSize: '0.85em', color: 'var(--color-accent)'}}>{run.id.slice(0, 8)}</td>
                     <td><span className={`status-pill status-${run.status === 'streaming' ? 'alive' : run.status === 'queued' ? 'warn' : 'alive'}`}>{run.status}</span></td>
                     <td>{run.providerId || '-'}</td>
                     <td>{run.accountId || '-'}</td>
@@ -193,8 +214,10 @@ export default function Dashboard() {
         ) : (
           <p className="muted">{t('dashboard.noActiveRuns')}</p>
         )}
-        {runtime?.locks && Object.keys(runtime.locks).length > 0 ? (
-          <div className="table-wrap" style={{marginTop: 16}}>
+        
+        {runtime?.locks && Object.keys(runtime.locks).length > 0 && (
+          <div className="table-wrap" style={{marginTop: 'var(--space-4)'}}>
+            <h4 style={{marginBottom: 'var(--space-2)'}}>{t('dashboard.locksStatus')}</h4>
             <table className="data-table">
               <thead>
                 <tr>
@@ -208,7 +231,7 @@ export default function Dashboard() {
               <tbody>
                 {Object.entries(runtime.locks).map(([key, lock]) => (
                   <tr key={key}>
-                    <td style={{fontFamily: 'monospace', fontSize: '0.85em'}}>{key}</td>
+                    <td style={{fontFamily: 'monospace', fontSize: '0.85em', color: 'var(--color-info)'}}>{key}</td>
                     <td>{lock.capacity || 0}</td>
                     <td>{lock.capacityMax || '-'}</td>
                     <td>{lock.queued || 0}</td>
@@ -218,19 +241,22 @@ export default function Dashboard() {
               </tbody>
             </table>
           </div>
-        ) : null}
+        )}
       </section>
 
-      <section className="surface-card" aria-labelledby="recent-title">
+      <section className="surface-card">
         <div className="surface-card-head">
-          <h3 id="recent-title">{t('dashboard.recentRequests')}</h3>
-          {lastUpdated ? <span className="muted">{t('common.updated')} {new Date(lastUpdated).toLocaleTimeString()}</span> : null}
+          <h3 style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+            <span style={{width: 4, height: 20, background: 'var(--color-success)', borderRadius: 2, display: 'inline-block'}}></span>
+            {t('dashboard.recentRequests')}
+          </h3>
         </div>
+        
         {logs.length === 0 ? (
           <p className="muted">{t('dashboard.noRequestLogs')}</p>
         ) : (
           <div className="table-wrap">
-            <table className="data-table">
+            <table className="logs-table">
               <thead>
                 <tr>
                   <th>{t('label.time')}</th>
@@ -245,9 +271,9 @@ export default function Dashboard() {
                   const meta = parseLog(log);
                   return (
                     <tr key={`${log.timestamp}-${index}`}>
-                      <td>{new Date(log.timestamp).toLocaleTimeString()}</td>
+                      <td style={{color: 'var(--text-secondary)'}}>{new Date(log.timestamp).toLocaleTimeString()}</td>
                       <td><span className={`status-pill status-${log.level === 'error' ? 'dead' : 'alive'}`}>{log.level}</span></td>
-                      <td>{meta.path || '-'}</td>
+                      <td><code style={{color: 'var(--color-accent)'}}>{meta.path || '-'}</code></td>
                       <td>{meta.model || '-'}</td>
                       <td>{meta.status || '-'}</td>
                     </tr>
@@ -258,6 +284,6 @@ export default function Dashboard() {
           </div>
         )}
       </section>
-    </section>
+    </div>
   );
 }

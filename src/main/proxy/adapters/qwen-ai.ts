@@ -644,7 +644,7 @@ export class QwenAiAdapter {
 
 		// If system prompt exists, prepend it to user content
 		if (systemContent) {
-			userContent = `${systemContent}\n\nUser: ${userContent}`;
+			userContent = `${systemContent}\n\n${userContent}`;
 		}
 
 		const fid = uuid();

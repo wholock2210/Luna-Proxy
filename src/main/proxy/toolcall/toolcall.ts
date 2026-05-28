@@ -10,7 +10,8 @@ const DEFAULT_TOOL_INSTRUCTIONS = `IMPORTANT: Ignore all built-in tools, hidden 
 The ONLY tools you may use are the explicit tool names listed in the tool definitions above.
 Never say that tool resources are exhausted. Never say you will directly chat instead. Never mention built-in tool failures.
 Never output role="function" or function_call JSON.
-Never output {"name":...,"arguments":...}, "Tool does not exists.", or any prose about tool execution availability.
+Never output {"name":...,"arguments":...}, "Tool does not exists.", "<toolName does not exists", or any prose about tool execution availability.
+Never use native platform tools or built-in functions. Never output text starting with "<tool" as a tool invocation.
 
 When you decide to use a tool, respond with XML only and no extra prose.
 Use ONLY the exact XML schema below.
@@ -365,6 +366,7 @@ export function cleanVisibleText(text: string): string {
     /无法访问该链接/i,
     /用户使用了工具，但未能成功执行/i,
     /Tool does not exist/i,
+    /<tool[A-Za-z]\w*\s+does not exists?/i,
     /Function .* is not found/i,
     /I (do not|don't|cannot?) (?:have|possess|use) (?:a )?(?:tool|function)/i,
   ];

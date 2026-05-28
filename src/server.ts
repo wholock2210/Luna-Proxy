@@ -144,10 +144,10 @@ function buildQwenMessagesForToolPrompt(messages: any[]): any[] {
   const chatMessages: any[] = [];
   if (systemContent) chatMessages.push({ role: 'system', content: systemContent });
   if (nonSystem.length > 0) {
-    chatMessages.push({
-      role: 'user',
-      content: nonSystem.map(m => `${m.role}:${m.content || ''}`).join(';'),
-    });
+    const userContent = nonSystem.length === 1
+      ? (nonSystem[0].content || '')
+      : nonSystem.map(m => `${m.role}:${m.content || ''}`).join(';');
+    chatMessages.push({ role: 'user', content: userContent });
   }
   return chatMessages.length > 0 ? chatMessages : [{ role: 'user', content: 'Hello' }];
 }
@@ -262,11 +262,14 @@ export class SimpleProxyServer {
     });
 
     this.router.post('/api/provider/token', async ctx => {
-      const {providerId, tokenKey = 'ticket', token, credentials} = ctx.request.body as any;
+      const {providerId, tokenKey = 'ticket', token, credentials, name} = ctx.request.body as any;
       if (!providerId || (!token && !credentials)) {
         ctx.status = 400;
         ctx.body = { error: 'providerId and token or credentials required' };
         return;
+      }
+      if (name && typeof name === 'string' && name.length > 0) {
+        configStore.setProviderName(providerId, name);
       }
       if (credentials && typeof credentials === 'object') {
         for (const [key, value] of Object.entries(credentials)) {

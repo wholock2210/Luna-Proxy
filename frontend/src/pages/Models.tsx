@@ -75,11 +75,11 @@ export default function Models() {
 
       <div className="surface-card">
         <p className="muted">{t('models.providerSource')}</p>
-        <div className="action-row">
-        <button onClick={refreshModels} disabled={refreshing || loading}>
-          {refreshing ? t('models.refreshing') : t('models.refreshCatalog')}
-        </button>
-        {updatedAt ? <span className="muted">{t('common.updated')}: {new Date(updatedAt).toLocaleString()}</span> : null}
+        <div className="btn-group">
+          <button onClick={refreshModels} disabled={refreshing || loading}>
+            {refreshing ? t('models.refreshing') : t('models.refreshCatalog')}
+          </button>
+          {updatedAt ? <span className="muted" style={{ marginLeft: 'var(--space-2)' }}>{t('common.updated')}: {new Date(updatedAt).toLocaleString()}</span> : null}
         </div>
       </div>
       {message ? <p className="muted">{message}</p> : null}
@@ -105,8 +105,8 @@ export default function Models() {
       </ul>
 
       {selectedModel ? (
-        <div className="detail-overlay" role="dialog" aria-modal="true" aria-labelledby="model-detail-title">
-          <aside className="detail-panel">
+        <div className="detail-overlay" role="dialog" aria-modal="true" aria-labelledby="model-detail-title" onClick={() => setSelectedModel(null)}>
+          <aside className="detail-panel" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close-btn" aria-label={t('common.close')} onClick={() => setSelectedModel(null)}>×</button>
             <div className="detail-heading">
               <p className="eyebrow">{t('models.detail')}</p>
@@ -130,3 +130,4 @@ export default function Models() {
     </section>
   );
 }
+// test watcher

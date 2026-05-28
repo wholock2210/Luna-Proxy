@@ -77,14 +77,19 @@ export async function applyTokenOverflowPolicy(
     let fileContent: string;
     let fileName: string;
 
-    const parts = buildRawOverflowContent(messages, totalTokens, threshold);
+    // Separate system messages so they stay outside the overflow file
+    const systemMessages = messages.filter(m => m && m.role === 'system');
+    const conversationMessages = messages.filter(m => m && m.role !== 'system');
+
+    const parts = buildRawOverflowContent(conversationMessages, totalTokens, threshold);
     fileContent = parts.join('\n');
     sanitizerMeta = {
       mode: 'raw-full-prompt',
-      keptMessageCount: messages.length,
+      keptMessageCount: conversationMessages.length,
       strippedMessageCount: 0,
+      systemMessagesKept: systemMessages.length,
       activeTask: {
-        textPreview: getLatestUserPreview(messages),
+        textPreview: getLatestUserPreview(conversationMessages),
         source: 'latest_user_preview_only',
       },
     };
@@ -148,7 +153,11 @@ export async function applyTokenOverflowPolicy(
       return { messages, fileIds: [], files: [], sanitized: false, sanitizerMeta };
     }
 
-    const outMessages = [{ role: 'user', content: guardPrompt }];
+    // Keep system messages in the request; only the conversation goes into the overflow file
+    const outMessages = [
+      ...systemMessages,
+      { role: 'user', content: guardPrompt },
+    ];
     return { messages: outMessages, fileIds, files, sanitized: true, sanitizerMeta };
   } catch (err) {
     console.error('[Overflow] failed to write aggregated overflow file:', err);
