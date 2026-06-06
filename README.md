@@ -31,6 +31,8 @@ Designed for local development and controlled routing. No cloud dependency, no t
 - **Worker routing** — optional egress/IP verification and worker forwarding
 - **Diagnostics APIs** — built-in logs, runtime inspection, and debug roundtrip endpoints
 
+
+
 ---
 
 ## Requirements
@@ -577,3 +579,8 @@ Qwen may emit native `function_call` deltas and then its web backend may report 
 
 **Stream issues**
 Check the **Logs** and **Runs** pages in the admin UI, or query `GET /api/logs` and `GET /api/runs` directly.
+
+
+## Contributors
+
+Special thanks to [bonelag](https://github.com/bonelag) for contributing to Luna Proxy through pull requests.
