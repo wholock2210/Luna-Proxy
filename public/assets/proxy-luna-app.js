@@ -30,7 +30,7 @@ var __toESM = (mod, isNodeMode, target) => {
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
 
-// node_modules/react/cjs/react.development.js
+// frontend/node_modules/react/cjs/react.development.js
 var require_react_development = __commonJS((exports, module) => {
   if (true) {
     (function() {
@@ -1833,14 +1833,15 @@ Check the top-level render call using <` + parentName + ">.";
   }
 });
 
-// node_modules/react/index.js
+// frontend/node_modules/react/index.js
 var require_react = __commonJS((exports, module) => {
+  var react_development = __toESM(require_react_development());
   if (false) {} else {
-    module.exports = require_react_development();
+    module.exports = react_development;
   }
 });
 
-// node_modules/scheduler/cjs/scheduler.development.js
+// frontend/node_modules/scheduler/cjs/scheduler.development.js
 var require_scheduler_development = __commonJS((exports) => {
   if (true) {
     (function() {
@@ -2283,14 +2284,15 @@ var require_scheduler_development = __commonJS((exports) => {
   }
 });
 
-// node_modules/scheduler/index.js
+// frontend/node_modules/scheduler/index.js
 var require_scheduler = __commonJS((exports, module) => {
+  var scheduler_development = __toESM(require_scheduler_development());
   if (false) {} else {
-    module.exports = require_scheduler_development();
+    module.exports = scheduler_development;
   }
 });
 
-// node_modules/react-dom/cjs/react-dom.development.js
+// frontend/node_modules/react-dom/cjs/react-dom.development.js
 var require_react_dom_development = __commonJS((exports) => {
   var React = __toESM(require_react());
   var Scheduler = __toESM(require_scheduler());
@@ -15347,7 +15349,7 @@ Learn more about this warning here: https://reactjs.org/link/legacy-context`, so
 
 ` + ("" + errorBoundaryMessage);
             console["error"](combinedMessage);
-          } else {}
+          }
         } catch (e) {
           setTimeout(function() {
             throw e;
@@ -22737,14 +22739,15 @@ You might need to use a local HTTP server (instead of file://): ` + "https://rea
   }
 });
 
-// node_modules/react-dom/index.js
+// frontend/node_modules/react-dom/index.js
 var require_react_dom = __commonJS((exports, module) => {
+  var react_dom_development = __toESM(require_react_dom_development());
   if (false) {} else {
-    module.exports = require_react_dom_development();
+    module.exports = react_dom_development;
   }
 });
 
-// node_modules/react-dom/client.js
+// frontend/node_modules/react-dom/client.js
 var require_client = __commonJS((exports) => {
   var m = __toESM(require_react_dom());
   if (false) {} else {
@@ -22769,7 +22772,7 @@ var require_client = __commonJS((exports) => {
   var i;
 });
 
-// node_modules/react/cjs/react-jsx-dev-runtime.development.js
+// frontend/node_modules/react/cjs/react-jsx-dev-runtime.development.js
 var require_react_jsx_dev_runtime_development = __commonJS((exports) => {
   var React3 = __toESM(require_react());
   if (true) {
@@ -23650,10 +23653,11 @@ Check the top-level render call using <` + parentName + ">.";
   }
 });
 
-// node_modules/react/jsx-dev-runtime.js
+// frontend/node_modules/react/jsx-dev-runtime.js
 var require_jsx_dev_runtime = __commonJS((exports, module) => {
+  var react_jsx_dev_runtime_development = __toESM(require_react_jsx_dev_runtime_development());
   if (false) {} else {
-    module.exports = require_react_jsx_dev_runtime_development();
+    module.exports = react_jsx_dev_runtime_development;
   }
 });
 
@@ -23661,14 +23665,14 @@ var require_jsx_dev_runtime = __commonJS((exports, module) => {
 var import_react11 = __toESM(require_react(), 1);
 var import_client = __toESM(require_client(), 1);
 
-// node_modules/react-router-dom/dist/index.js
+// frontend/node_modules/react-router-dom/dist/index.js
 var React2 = __toESM(require_react(), 1);
 var ReactDOM = __toESM(require_react_dom(), 1);
 
-// node_modules/react-router/dist/index.js
+// frontend/node_modules/react-router/dist/index.js
 var React = __toESM(require_react(), 1);
 
-// node_modules/@remix-run/router/dist/router.js
+// frontend/node_modules/@remix-run/router/dist/router.js
 function _extends() {
   _extends = Object.assign ? Object.assign.bind() : function(target) {
     for (var i = 1;i < arguments.length; i++) {
@@ -24144,8 +24148,7 @@ function compilePath(path, caseSensitive, end) {
     regexpSource += "\\/*$";
   } else if (path !== "" && path !== "/") {
     regexpSource += "(?:(?=\\/|$))";
-  } else
-    ;
+  }
   let matcher = new RegExp(regexpSource, caseSensitive ? undefined : "i");
   return [matcher, params];
 }
@@ -24285,7 +24288,7 @@ var redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
 var redirectPreserveMethodStatusCodes = new Set([307, 308]);
 var UNSAFE_DEFERRED_SYMBOL = Symbol("deferred");
 
-// node_modules/react-router/dist/index.js
+// frontend/node_modules/react-router/dist/index.js
 function _extends2() {
   _extends2 = Object.assign ? Object.assign.bind() : function(target) {
     for (var i = 1;i < arguments.length; i++) {
@@ -24986,7 +24989,7 @@ function createRoutesFromChildren(children, parentPath) {
   });
   return routes;
 }
-// node_modules/react-router-dom/dist/index.js
+// frontend/node_modules/react-router-dom/dist/index.js
 function _extends3() {
   _extends3 = Object.assign ? Object.assign.bind() : function(target) {
     for (var i = 1;i < arguments.length; i++) {
@@ -27492,7 +27495,7 @@ function Providers() {
                           type: "text",
                           value: emailValue,
                           onChange: (e) => setEmailValue(e.target.value),
-                          placeholder: "lole7176@gmail.com"
+                          placeholder: "yourMail@gmail.com"
                         }, undefined, false, undefined, this)
                       ]
                     }, undefined, true, undefined, this),

@@ -160,7 +160,7 @@ export default function Providers() {
   async function validate() {
     if (!selected) return;
     setValidation({ text: t('providers.checking'), type: 'info' });
-    
+
     let token = tokenValue;
     if (rawJsonInput && !token) {
       try {
@@ -292,7 +292,7 @@ export default function Providers() {
                       type="text"
                       value={emailValue}
                       onChange={(e) => setEmailValue(e.target.value)}
-                      placeholder="lole7176@gmail.com"
+                      placeholder="yourMail@gmail.com"
                     />
                   </label>
                   <label className="field">
